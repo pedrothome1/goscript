@@ -20,6 +20,10 @@ const (
 	RPAREN
 )
 
+func (k Kind) String() string {
+	return kinds[k]
+}
+
 var kinds = map[Kind]string{
 	ILLEGAL: "ILLEGAL",
 	EOF:     "EOF",

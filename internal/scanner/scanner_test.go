@@ -13,7 +13,7 @@ func TestScanner_Scan(t *testing.T) {
 
 	toks, err := s.Scan()
 	if err != nil {
-		t.Errorf("err == nil: %s", err.Error())
+		t.Errorf("err == nil: %s\n", err.Error())
 	}
 
 	for _, tok := range toks {
