@@ -45,18 +45,17 @@ func (p *Parser) term() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for t := p.peek(); t.Kind == token.ADD || t.Kind == token.SUB; {
-		p.advance()
+	for p.peek().Kind == token.ADD || p.peek().Kind == token.SUB {
+		op := p.advance()
 		right, err := p.factor()
 		if err != nil {
 			return nil, err
 		}
 		expr = &ast.BinaryExpr{
 			Left:  expr,
-			Op:    t,
+			Op:    op,
 			Right: right,
 		}
-		t = p.advance()
 	}
 
 	return expr, nil
@@ -68,46 +67,47 @@ func (p *Parser) factor() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for t := p.peek(); t.Kind == token.MUL || t.Kind == token.QUO || t.Kind == token.REM; {
-		p.advance()
+	for p.peek().Kind == token.MUL || p.peek().Kind == token.QUO || p.peek().Kind == token.REM {
+		op := p.advance()
 		right, err := p.unary()
 		if err != nil {
 			return nil, err
 		}
 		expr = &ast.BinaryExpr{
 			Left:  expr,
-			Op:    t,
+			Op:    op,
 			Right: right,
 		}
-		t = p.advance()
 	}
 
 	return expr, nil
 }
 
 func (p *Parser) unary() (ast.Expr, error) {
-	var op token.Token
-	if t := p.peek(); t.Kind == token.SUB {
-		op = t
-		p.advance()
+	if p.peek().Kind == token.SUB {
+		op := p.advance()
+		right, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.UnaryExpr{
+			Op:    op,
+			Right: right,
+		}, nil
 	}
-	right, err := p.primary()
+
+	primary, err := p.primary()
 	if err != nil {
 		return nil, err
 	}
-
-	return &ast.UnaryExpr{
-		Op:    op,
-		Right: right,
-	}, nil
+	return primary, nil
 }
 
 func (p *Parser) primary() (ast.Expr, error) {
-	if t := p.peek(); t.Kind == token.FLOAT {
-		p.advance()
-		return &ast.FloatLit{Value: t}, nil
+	if p.peek().Kind == token.FLOAT {
+		return &ast.FloatLit{Value: p.advance()}, nil
 	}
-	if t := p.peek(); t.Kind == token.LPAREN {
+	if p.peek().Kind == token.LPAREN {
 		p.advance()
 		expr, err := p.expression()
 		if err != nil {
@@ -136,7 +136,7 @@ func (p *Parser) peek() token.Token {
 
 func (p *Parser) peekNext() token.Token {
 	if p.pos+1 >= len(p.toks) {
-		return p.toks[len(p.toks)-1] // EOF
+		return token.Token{token.EOF, nil}
 	}
 	return p.toks[p.pos+1]
 }

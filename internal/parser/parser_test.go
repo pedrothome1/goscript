@@ -7,13 +7,26 @@ import (
 )
 
 func TestParser_Parse(t *testing.T) {
-	p := &parser.Parser{}
-	p.Init([]byte("3 + 4 * 5"))
-	expr, err := p.Parse()
-	if err != nil {
-		t.Errorf("err not nil: %s\n", err.Error())
+	tests := []struct {
+		Src []byte
+	}{
+		{
+			Src: []byte("3 + 4 * 5"),
+		},
+		{
+			Src: []byte("(3 + 4) * 5"),
+		},
 	}
 
-	pr := &printer.Printer{}
-	pr.Visit(expr)
+	for _, test := range tests {
+		p := &parser.Parser{}
+		p.Init(test.Src)
+		expr, err := p.Parse()
+		if err != nil {
+			t.Errorf("err not nil: %s\n", err.Error())
+		}
+
+		pr := &printer.Printer{}
+		pr.Visit(expr)
+	}
 }

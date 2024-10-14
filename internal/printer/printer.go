@@ -48,7 +48,7 @@ func (p *Printer) visitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 	p.comma = parentComma
 
 	p.level -= indent
-	fmt.Printf("%s)\n%s", p.indent(), p.comma)
+	fmt.Printf("%s)%s\n", p.indent(), p.comma)
 
 	return nil, nil
 }
