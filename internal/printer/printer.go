@@ -12,64 +12,59 @@ const indent = 4
 type Printer struct {
 	level int
 	comma string
+	sb    strings.Builder
 }
 
 func (p *Printer) Visit(expr ast.Expr) (any, error) {
 	switch e := expr.(type) {
 	case *ast.FloatLit:
-		return p.visitFloatLit(e)
+		p.visitFloatLit(e)
 	case *ast.BinaryExpr:
-		return p.visitBinaryExpr(e)
+		p.visitBinaryExpr(e)
 	case *ast.UnaryExpr:
-		return p.visitUnaryExpr(e)
+		p.visitUnaryExpr(e)
 	case *ast.ParenExpr:
-		return p.visitParenExpr(e)
-	default:
-		return nil, nil
+		p.visitParenExpr(e)
 	}
+
+	return p.sb.String(), nil
 }
 
-func (p *Printer) visitFloatLit(lit *ast.FloatLit) (any, error) {
-	fmt.Printf("%sFloatLit(%.2f)%s\n", p.indent(), lit.Value.Lit, p.comma)
-	return nil, nil
+func (p *Printer) visitFloatLit(lit *ast.FloatLit) {
+	fmt.Fprintf(&p.sb, "%sFloatLit(%.2f)%s\n", p.indent(), lit.Value.Lit, p.comma)
 }
 
-func (p *Printer) visitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
-	fmt.Printf("%sBinaryExpr(\n", p.indent())
+func (p *Printer) visitBinaryExpr(expr *ast.BinaryExpr) {
+	fmt.Fprintf(&p.sb, "%sBinaryExpr(\n", p.indent())
 	p.level += indent
 
 	parentComma := p.comma
 
 	p.comma = ","
 	p.Visit(expr.Left)
-	fmt.Printf("%s%s%s\n", p.indent(), expr.Op.Kind.String(), p.comma)
+	fmt.Fprintf(&p.sb, "%s%s%s\n", p.indent(), expr.Op.Kind.String(), p.comma)
 	p.comma = ""
 	p.Visit(expr.Right)
 	p.comma = parentComma
 
 	p.level -= indent
-	fmt.Printf("%s)%s\n", p.indent(), p.comma)
-
-	return nil, nil
+	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
 }
 
-func (p *Printer) visitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
+func (p *Printer) visitUnaryExpr(expr *ast.UnaryExpr) {
 	if expr.Op.Kind == token.ILLEGAL {
 		if lit, ok := expr.Right.(*ast.FloatLit); ok {
 			p.visitFloatLit(lit)
 		}
 	}
-	return nil, nil
 }
 
-func (p *Printer) visitParenExpr(expr *ast.ParenExpr) (any, error) {
-	fmt.Printf("%sParenExpr(\n", p.indent())
+func (p *Printer) visitParenExpr(expr *ast.ParenExpr) {
+	fmt.Fprintf(&p.sb, "%sParenExpr(\n", p.indent())
 	p.level += indent
 	p.Visit(expr.X)
 	p.level -= indent
-	fmt.Printf("%s)%s\n", p.indent(), p.comma)
-
-	return nil, nil
+	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
 }
 
 func (p *Printer) indent() string {
