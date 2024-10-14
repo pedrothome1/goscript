@@ -15,56 +15,50 @@ type Printer struct {
 	sb    strings.Builder
 }
 
-func (p *Printer) Visit(expr ast.Expr) (any, error) {
-	switch e := expr.(type) {
-	case *ast.FloatLit:
-		p.visitFloatLit(e)
-	case *ast.BinaryExpr:
-		p.visitBinaryExpr(e)
-	case *ast.UnaryExpr:
-		p.visitUnaryExpr(e)
-	case *ast.ParenExpr:
-		p.visitParenExpr(e)
-	}
-
-	return p.sb.String(), nil
+func (p *Printer) String(expr ast.Expr) string {
+	expr.Accept(p)
+	return p.sb.String()
 }
 
-func (p *Printer) visitFloatLit(lit *ast.FloatLit) {
+func (p *Printer) VisitFloatLit(lit *ast.FloatLit) (any, error) {
 	fmt.Fprintf(&p.sb, "%sFloatLit(%.2f)%s\n", p.indent(), lit.Value.Lit, p.comma)
+	return nil, nil
 }
 
-func (p *Printer) visitBinaryExpr(expr *ast.BinaryExpr) {
+func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 	fmt.Fprintf(&p.sb, "%sBinaryExpr(\n", p.indent())
 	p.level += indent
 
 	parentComma := p.comma
 
 	p.comma = ","
-	p.Visit(expr.Left)
+	expr.Left.Accept(p)
 	fmt.Fprintf(&p.sb, "%s%s%s\n", p.indent(), expr.Op.Kind.String(), p.comma)
 	p.comma = ""
-	p.Visit(expr.Right)
+	expr.Right.Accept(p)
 	p.comma = parentComma
 
 	p.level -= indent
 	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
+	return nil, nil
 }
 
-func (p *Printer) visitUnaryExpr(expr *ast.UnaryExpr) {
+func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
 	if expr.Op.Kind == token.ILLEGAL {
 		if lit, ok := expr.Right.(*ast.FloatLit); ok {
-			p.visitFloatLit(lit)
+			p.VisitFloatLit(lit)
 		}
 	}
+	return nil, nil
 }
 
-func (p *Printer) visitParenExpr(expr *ast.ParenExpr) {
+func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (any, error) {
 	fmt.Fprintf(&p.sb, "%sParenExpr(\n", p.indent())
 	p.level += indent
-	p.Visit(expr.X)
+	expr.X.Accept(p)
 	p.level -= indent
 	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
+	return nil, nil
 }
 
 func (p *Printer) indent() string {

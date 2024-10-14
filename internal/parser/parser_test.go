@@ -85,8 +85,7 @@ func TestParser_Parse(t *testing.T) {
 			if !reflect.DeepEqual(expr, test.Want) {
 				t.Errorf("want != got")
 			} else {
-				str, _ := pr.Visit(expr)
-				fmt.Print(str)
+				fmt.Print(pr.String(expr))
 			}
 		})
 	}
