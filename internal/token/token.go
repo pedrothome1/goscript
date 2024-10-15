@@ -9,6 +9,7 @@ const (
 	EOF
 
 	FLOAT
+	INT
 
 	ADD
 	SUB
@@ -28,6 +29,7 @@ var kinds = map[Kind]string{
 	ILLEGAL: "ILLEGAL",
 	EOF:     "EOF",
 	FLOAT:   "FLOAT",
+	INT:     "INT",
 	ADD:     "ADD",
 	SUB:     "SUB",
 	MUL:     "MUL",
@@ -38,8 +40,9 @@ var kinds = map[Kind]string{
 }
 
 type Token struct {
-	Kind Kind
-	Lit  any
+	Kind   Kind
+	Lit    any
+	Lexeme string
 }
 
 func (t *Token) String() string {

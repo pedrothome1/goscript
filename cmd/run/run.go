@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	log.SetFlags(0)
 	eval := &interpreter.Interpreter{}
 	sc := bufio.NewScanner(os.Stdin)
 	sc.Split(bufio.ScanLines)
@@ -40,7 +41,12 @@ func main() {
 			log.Printf("interpreter error: %s\n", err.Error())
 			continue
 		}
-		resultFmt := strconv.FormatFloat(result, 'f', -1, 64)
-		fmt.Printf("=> %s\n", resultFmt)
+
+		switch v := result.(type) {
+		case int:
+			fmt.Printf("%d\n", v)
+		case float64:
+			fmt.Printf("%s\n", strconv.FormatFloat(v, 'f', -1, 64))
+		}
 	}
 }

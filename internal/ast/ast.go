@@ -5,7 +5,7 @@ import (
 )
 
 type Visitor interface {
-	VisitFloatLit(lit *FloatLit) (any, error)
+	VisitBasicLit(lit *BasicLit) (any, error)
 	VisitBinaryExpr(expr *BinaryExpr) (any, error)
 	VisitUnaryExpr(expr *UnaryExpr) (any, error)
 	VisitParenExpr(expr *ParenExpr) (any, error)
@@ -17,7 +17,7 @@ type Expr interface {
 	exprNode()
 }
 
-type FloatLit struct {
+type BasicLit struct {
 	Value token.Token
 }
 
@@ -36,8 +36,8 @@ type ParenExpr struct {
 	X Expr
 }
 
-func (e *FloatLit) Accept(v Visitor) (any, error)   { return v.VisitFloatLit(e) }
-func (e *FloatLit) exprNode()                       {}
+func (e *BasicLit) Accept(v Visitor) (any, error)   { return v.VisitBasicLit(e) }
+func (e *BasicLit) exprNode()                       {}
 func (e *BinaryExpr) Accept(v Visitor) (any, error) { return v.VisitBinaryExpr(e) }
 func (e *BinaryExpr) exprNode()                     {}
 func (e *UnaryExpr) Accept(v Visitor) (any, error)  { return v.VisitUnaryExpr(e) }

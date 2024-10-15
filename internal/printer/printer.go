@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/token"
+	"strconv"
 	"strings"
 )
 
@@ -17,11 +18,19 @@ type Printer struct {
 
 func (p *Printer) String(expr ast.Expr) string {
 	expr.Accept(p)
+	defer p.sb.Reset()
 	return p.sb.String()
 }
 
-func (p *Printer) VisitFloatLit(lit *ast.FloatLit) (any, error) {
-	fmt.Fprintf(&p.sb, "%sFloatLit(%.2f)%s\n", p.indent(), lit.Value.Lit, p.comma)
+func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (any, error) {
+	switch lit.Value.Kind {
+	case token.FLOAT:
+		val := strconv.FormatFloat(lit.Value.Lit.(float64), 'f', -1, 64)
+		fmt.Fprintf(&p.sb, "%sBasicLit(float(%s))%s\n", p.indent(), val, p.comma)
+	case token.INT:
+		fmt.Fprintf(&p.sb, "%sBasicLit(int(%d))%s\n", p.indent(), lit.Value.Lit, p.comma)
+	}
+
 	return nil, nil
 }
 
@@ -44,11 +53,7 @@ func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 }
 
 func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
-	if expr.Op.Kind == token.ILLEGAL {
-		if lit, ok := expr.Right.(*ast.FloatLit); ok {
-			p.VisitFloatLit(lit)
-		}
-	}
+	// TODO:
 	return nil, nil
 }
 

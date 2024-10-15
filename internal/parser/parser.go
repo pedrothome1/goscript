@@ -28,7 +28,7 @@ expression -> term
 term       -> factor ( ( '+' | '-' ) factor )*
 factor     -> unary ( ( '*' | '/' ) unary )*
 unary      -> ( '-' )? primary
-primary    -> NUMBER | '(' expression ')'
+primary    -> FLOAT | INT | '(' expression ')'
 */
 
 func (p *Parser) Parse() (ast.Expr, error) {
@@ -104,8 +104,9 @@ func (p *Parser) unary() (ast.Expr, error) {
 }
 
 func (p *Parser) primary() (ast.Expr, error) {
-	if p.peek().Kind == token.FLOAT {
-		return &ast.FloatLit{Value: p.advance()}, nil
+	switch p.peek().Kind {
+	case token.FLOAT, token.INT:
+		return &ast.BasicLit{Value: p.advance()}, nil
 	}
 	if p.peek().Kind == token.LPAREN {
 		p.advance()
@@ -136,7 +137,7 @@ func (p *Parser) peek() token.Token {
 
 func (p *Parser) peekNext() token.Token {
 	if p.pos+1 >= len(p.toks) {
-		return token.Token{token.EOF, nil}
+		return token.Token{token.EOF, nil, ""}
 	}
 	return p.toks[p.pos+1]
 }

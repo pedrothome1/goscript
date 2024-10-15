@@ -20,21 +20,21 @@ func TestParser_Parse(t *testing.T) {
 			Name: "Simple ADD",
 			Src:  []byte("1 + 2"),
 			Want: &ast.BinaryExpr{
-				floatLit(1),
-				op(token.ADD),
-				floatLit(2),
+				&ast.BasicLit{token.Token{token.INT, 1, "1"}},
+				token.Token{token.ADD, nil, "+"},
+				&ast.BasicLit{token.Token{token.INT, 2, "2"}},
 			},
 		},
 		{
 			Name: "Precende ADD, MUL",
 			Src:  []byte("3 + 4 * 5"),
 			Want: &ast.BinaryExpr{
-				floatLit(3),
-				op(token.ADD),
+				&ast.BasicLit{token.Token{token.INT, 3, "3"}},
+				token.Token{token.ADD, nil, "+"},
 				&ast.BinaryExpr{
-					floatLit(4),
-					op(token.MUL),
-					floatLit(5),
+					&ast.BasicLit{token.Token{token.INT, 4, "4"}},
+					token.Token{token.MUL, nil, "*"},
+					&ast.BasicLit{token.Token{token.INT, 5, "5"}},
 				},
 			},
 		},
@@ -44,13 +44,43 @@ func TestParser_Parse(t *testing.T) {
 			Want: &ast.BinaryExpr{
 				&ast.ParenExpr{
 					&ast.BinaryExpr{
-						floatLit(3),
-						op(token.ADD),
-						floatLit(4),
+						&ast.BasicLit{token.Token{token.INT, 3, "3"}},
+						token.Token{token.ADD, nil, "+"},
+						&ast.BasicLit{token.Token{token.INT, 4, "4"}},
 					},
 				},
-				op(token.MUL),
-				floatLit(5),
+				token.Token{token.MUL, nil, "*"},
+				&ast.BasicLit{token.Token{token.INT, 5, "5"}},
+			},
+		},
+		{
+			Name: "Precence PAREN (ADD), MUL with floats",
+			Src:  []byte("(3.2 + 4.1) * 5.659"),
+			Want: &ast.BinaryExpr{
+				&ast.ParenExpr{
+					&ast.BinaryExpr{
+						&ast.BasicLit{token.Token{token.FLOAT, 3.2, "3.2"}},
+						token.Token{token.ADD, nil, "+"},
+						&ast.BasicLit{token.Token{token.FLOAT, 4.1, "4.1"}},
+					},
+				},
+				token.Token{token.MUL, nil, "*"},
+				&ast.BasicLit{token.Token{token.FLOAT, 5.659, "5.659"}},
+			},
+		},
+		{
+			Name: "Precence PAREN (ADD), MUL with ints and floats",
+			Src:  []byte("(3.2 + 4) * 5.659"),
+			Want: &ast.BinaryExpr{
+				&ast.ParenExpr{
+					&ast.BinaryExpr{
+						&ast.BasicLit{token.Token{token.FLOAT, 3.2, "3.2"}},
+						token.Token{token.ADD, nil, "+"},
+						&ast.BasicLit{token.Token{token.INT, 4, "4"}},
+					},
+				},
+				token.Token{token.MUL, nil, "*"},
+				&ast.BasicLit{token.Token{token.FLOAT, 5.659, "5.659"}},
 			},
 		},
 		{
@@ -59,19 +89,18 @@ func TestParser_Parse(t *testing.T) {
 			Want: &ast.BinaryExpr{
 				&ast.BinaryExpr{
 					&ast.BinaryExpr{
-						floatLit(10),
-						op(token.ADD),
-						floatLit(11),
+						&ast.BasicLit{token.Token{token.INT, 10, "10"}},
+						token.Token{token.ADD, nil, "+"},
+						&ast.BasicLit{token.Token{token.INT, 11, "11"}},
 					},
-					op(token.ADD),
-					floatLit(12),
+					token.Token{token.ADD, nil, "+"},
+					&ast.BasicLit{token.Token{token.INT, 12, "12"}},
 				},
-				op(token.ADD),
-				floatLit(13),
+				token.Token{token.ADD, nil, "+"},
+				&ast.BasicLit{token.Token{token.INT, 13, "13"}},
 			},
 		},
 	}
-	pr := &printer.Printer{}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
@@ -85,16 +114,10 @@ func TestParser_Parse(t *testing.T) {
 			if !reflect.DeepEqual(expr, test.Want) {
 				t.Errorf("want != got")
 			} else {
+				pr := &printer.Printer{}
+				fmt.Println(string(test.Src))
 				fmt.Print(pr.String(expr))
 			}
 		})
 	}
-}
-
-func floatLit(num float64) *ast.FloatLit {
-	return &ast.FloatLit{token.Token{token.FLOAT, num}}
-}
-
-func op(t token.Kind) token.Token {
-	return token.Token{t, nil}
 }

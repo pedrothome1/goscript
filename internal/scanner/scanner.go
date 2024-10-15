@@ -15,9 +15,11 @@ type Scanner struct {
 
 func (s *Scanner) Init(src []byte) {
 	s.src = string(src)
+	s.start = 0
+	s.pos = 0
+	s.toks = make([]token.Token, 0)
 }
 
-// 3 + 4 * 5
 func (s *Scanner) Scan() ([]token.Token, error) {
 	for !s.atEnd() {
 		s.start = s.pos
@@ -42,7 +44,7 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			break
 		default:
 			if s.isDigit(ch) {
-				if err := s.addFloat(); err != nil {
+				if err := s.addNumber(); err != nil {
 					return s.toks, err
 				}
 			} else {
@@ -51,15 +53,15 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			}
 		}
 	}
-	s.toks = append(s.toks, token.Token{token.EOF, nil})
+	s.toks = append(s.toks, token.Token{token.EOF, nil, ""})
 	return s.toks, nil
 }
 
 func (s *Scanner) addToken(kind token.Kind, lit any) {
-	s.toks = append(s.toks, token.Token{kind, lit})
+	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos]})
 }
 
-func (s *Scanner) addFloat() error {
+func (s *Scanner) addNumber() error {
 	for s.isDigit(s.peek()) {
 		s.advance()
 	}
@@ -68,13 +70,19 @@ func (s *Scanner) addFloat() error {
 			for s.isDigit(s.peek()) {
 				s.advance()
 			}
+			num, err := strconv.ParseFloat(s.src[s.start:s.pos], 64)
+			if err != nil {
+				return err
+			}
+			s.addToken(token.FLOAT, num)
+			return nil
 		}
 	}
-	num, err := strconv.ParseFloat(s.src[s.start:s.pos], 64)
+	num, err := strconv.Atoi(s.src[s.start:s.pos])
 	if err != nil {
 		return err
 	}
-	s.toks = append(s.toks, token.Token{token.FLOAT, num})
+	s.addToken(token.INT, num)
 	return nil
 }
 
