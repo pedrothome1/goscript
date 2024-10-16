@@ -103,6 +103,10 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 				if err := s.addNumber(); err != nil {
 					return s.toks, err
 				}
+			} else if s.isAlpha(ch) {
+				if err := s.addIdentifier(); err != nil {
+					return s.toks, err
+				}
 			} else {
 				s.addToken(token.ILLEGAL, nil)
 				return s.toks, fmt.Errorf("invalid character: %q", ch)
@@ -139,6 +143,18 @@ func (s *Scanner) addNumber() error {
 		return err
 	}
 	s.addToken(token.INT, num)
+	return nil
+}
+
+func (s *Scanner) addIdentifier() error {
+	for s.isAlphaNumeric(s.peek()) {
+		s.advance()
+	}
+	if t, ok := token.Keyword(s.src[s.start:s.pos]); ok {
+		s.toks = append(s.toks, t)
+		return nil
+	}
+	s.addToken(token.IDENT, nil)
 	return nil
 }
 
@@ -276,4 +292,12 @@ func (s *Scanner) peek() byte {
 
 func (s *Scanner) isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
+}
+
+func (s *Scanner) isAlpha(c byte) bool {
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_'
+}
+
+func (s *Scanner) isAlphaNumeric(c byte) bool {
+	return s.isAlpha(c) || s.isDigit(c)
 }

@@ -84,6 +84,16 @@ var kinds = map[Kind]string{
 	RPAREN:  "RPAREN",
 }
 
+func Keyword(s string) (Token, bool) {
+	t, ok := keywords[s]
+	return t, ok
+}
+
+var keywords = map[string]Token{
+	"false": {BOOL, false, "false"},
+	"true":  {BOOL, true, "true"},
+}
+
 type Token struct {
 	Kind   Kind
 	Lit    any
