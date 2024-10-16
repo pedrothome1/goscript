@@ -176,7 +176,7 @@ func (p *Parser) unary() (ast.Expr, error) {
 
 func (p *Parser) primary() (ast.Expr, error) {
 	switch p.peek().Kind {
-	case token.FLOAT, token.INT, token.CHAR, token.STRING, token.BOOL:
+	case token.FLOAT, token.INT, token.CHAR, token.STRING, token.BOOL, token.NIL:
 		return &ast.BasicLit{Value: p.advance()}, nil
 	}
 	if p.peek().Kind == token.LPAREN {

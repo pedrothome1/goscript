@@ -44,6 +44,8 @@ const (
 
 	LPAREN
 	RPAREN
+
+	NIL
 )
 
 func (k Kind) String() string {
@@ -82,6 +84,7 @@ var kinds = map[Kind]string{
 	ASSIGN:  "ASSIGN",
 	LPAREN:  "LPAREN",
 	RPAREN:  "RPAREN",
+	NIL:     "NIL",
 }
 
 func Keyword(s string) (Token, bool) {
@@ -92,6 +95,7 @@ func Keyword(s string) (Token, bool) {
 var keywords = map[string]Token{
 	"false": {BOOL, false, "false"},
 	"true":  {BOOL, true, "true"},
+	"nil":   {NIL, nil, "nil"},
 }
 
 type Token struct {
