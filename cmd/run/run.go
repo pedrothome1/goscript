@@ -51,8 +51,8 @@ func main() {
 			fmt.Printf("%s\n", strconv.FormatFloat(v, 'f', -1, 64))
 		case string:
 			fmt.Printf("%q\n", v)
-		case any:
-			if v == nil {
+		default:
+			if result == nil {
 				fmt.Printf("%v\n", v)
 			}
 		}
