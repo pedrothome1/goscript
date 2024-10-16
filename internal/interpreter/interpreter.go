@@ -107,6 +107,17 @@ func (r *Interpreter) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
 		return nil, fmt.Errorf("the operand must be a number")
 	}
 
+	if expr.Op.Kind == token.NOT {
+		right, err := expr.Right.Accept(r)
+		if err != nil {
+			return nil, err
+		}
+		if rval, ok := right.(bool); ok {
+			return !rval, nil
+		}
+		return nil, fmt.Errorf("the operand must be a bool")
+	}
+
 	return nil, fmt.Errorf("invalid unary operator")
 }
 

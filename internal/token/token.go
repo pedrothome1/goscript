@@ -30,6 +30,7 @@ const (
 	GTR
 	LEQ
 	GEQ
+
 	NOT
 
 	ASSIGN
