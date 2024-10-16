@@ -5,6 +5,7 @@ import (
 	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/token"
 	"math"
+	"strings"
 )
 
 type Interpreter struct{}
@@ -46,6 +47,33 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 			return leftInt / rightInt, nil
 		case token.REM:
 			return leftInt % rightInt, nil
+		case token.AND:
+			return leftInt & rightInt, nil
+		case token.OR:
+			return leftInt | rightInt, nil
+		case token.XOR:
+			return leftInt ^ rightInt, nil
+		case token.SHL:
+			return leftInt << rightInt, nil
+		case token.SHR:
+			return leftInt >> rightInt, nil
+		case token.AND_NOT:
+			return leftInt &^ rightInt, nil
+
+		// comparison
+		case token.EQL:
+			return leftInt == rightInt, nil
+		case token.NEQ:
+			return leftInt != rightInt, nil
+		case token.LSS:
+			return leftInt < rightInt, nil
+		case token.GTR:
+			return leftInt > rightInt, nil
+		case token.LEQ:
+			return leftInt <= rightInt, nil
+		case token.GEQ:
+			return leftInt >= rightInt, nil
+
 		default:
 			return nil, fmt.Errorf("invalid integer operator")
 		}
@@ -72,6 +100,21 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 			return leftFloat / rightFloat, nil
 		case token.REM:
 			return math.Mod(leftFloat, rightFloat), nil
+
+		// comparison
+		case token.EQL:
+			return leftFloat == rightFloat, nil
+		case token.NEQ:
+			return leftFloat != rightFloat, nil
+		case token.LSS:
+			return leftFloat < rightFloat, nil
+		case token.GTR:
+			return leftFloat > rightFloat, nil
+		case token.LEQ:
+			return leftFloat <= rightFloat, nil
+		case token.GEQ:
+			return leftFloat >= rightFloat, nil
+
 		default:
 			return nil, fmt.Errorf("invalid float operator")
 		}
@@ -84,12 +127,46 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 		switch expr.Op.Kind {
 		case token.ADD:
 			return leftStr + rightStr, nil
+
+		// comparison
+		case token.EQL:
+			return leftStr == rightStr, nil
+		case token.NEQ:
+			return leftStr != rightStr, nil
+		case token.LSS:
+			return strings.Compare(leftStr, rightStr) < 0, nil
+		case token.GTR:
+			return strings.Compare(leftStr, rightStr) > 0, nil
+		case token.LEQ:
+			return leftStr == rightStr || strings.Compare(leftStr, rightStr) < 0, nil
+		case token.GEQ:
+			return leftStr == rightStr || strings.Compare(leftStr, rightStr) > 0, nil
 		default:
 			return nil, fmt.Errorf("invalid string operator")
 		}
 	}
 
-	return nil, fmt.Errorf("the operands must be both either numbers or strings")
+	// it's not short-circuiting.
+	// TODO: review
+	leftBool, isLeftBool := left.(bool)
+	rightBool, isRightBool := right.(bool)
+
+	if isLeftBool && isRightBool {
+		switch expr.Op.Kind {
+		case token.LAND:
+			return leftBool && rightBool, nil
+		case token.LOR:
+			return leftBool || rightBool, nil
+		case token.EQL:
+			return leftBool == rightBool, nil
+		case token.NEQ:
+			return leftBool != rightBool, nil
+		default:
+			return nil, fmt.Errorf("invalid bool operator")
+		}
+	}
+
+	return nil, fmt.Errorf("mismatched operand types")
 }
 
 func (r *Interpreter) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {

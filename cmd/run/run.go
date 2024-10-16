@@ -45,10 +45,16 @@ func main() {
 		switch v := result.(type) {
 		case int:
 			fmt.Printf("%d\n", v)
+		case bool:
+			fmt.Printf("%v\n", v)
 		case float64:
 			fmt.Printf("%s\n", strconv.FormatFloat(v, 'f', -1, 64))
 		case string:
 			fmt.Printf("%q\n", v)
+		case any:
+			if v == nil {
+				fmt.Printf("%v\n", v)
+			}
 		}
 	}
 }
