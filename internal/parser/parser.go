@@ -24,12 +24,14 @@ func (p *Parser) Init(src []byte) error {
 }
 
 /*
-expression -> comparison
-comparison -> term ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term
-term       -> factor ( ( '+' | '-' ) factor )*
-factor     -> unary ( ( '*' | '/' ) unary )*
-unary      -> ( '-' | '!' )? primary
-primary    -> FLOAT | INT | CHAR | STRING | 'true' | 'false' | 'nil' | '(' expression ')'
+expression   -> logical_or
+logical_or   -> logical_and ( ( '||' ) logical_and )*
+logical_and  -> comparison ( ( '&&' ) comparison )*
+comparison   -> term ( ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term )?
+term         -> factor ( ( '+' | '-' ) factor )*
+factor       -> unary ( ( '*' | '/' ) unary )*
+unary        -> ( '-' | '!' )? primary
+primary      -> FLOAT | INT | CHAR | STRING | 'true' | 'false' | 'nil' | '(' expression ')'
 */
 
 func (p *Parser) Parse() (ast.Expr, error) {
@@ -37,7 +39,74 @@ func (p *Parser) Parse() (ast.Expr, error) {
 }
 
 func (p *Parser) expression() (ast.Expr, error) {
-	return p.term()
+	return p.logicalOr()
+}
+
+func (p *Parser) logicalOr() (ast.Expr, error) {
+	expr, err := p.logicalAnd()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.peek().Kind == token.LOR {
+		op := p.advance()
+		right, err := p.logicalAnd()
+		if err != nil {
+			return nil, err
+		}
+		expr = &ast.BinaryExpr{
+			Left:  expr,
+			Op:    op,
+			Right: right,
+		}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) logicalAnd() (ast.Expr, error) {
+	expr, err := p.comparison()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.peek().Kind == token.LAND {
+		op := p.advance()
+		right, err := p.comparison()
+		if err != nil {
+			return nil, err
+		}
+		expr = &ast.BinaryExpr{
+			Left:  expr,
+			Op:    op,
+			Right: right,
+		}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) comparison() (ast.Expr, error) {
+	left, err := p.term()
+	if err != nil {
+		return nil, err
+	}
+
+	switch p.peek().Kind {
+	case token.EQL, token.NEQ, token.LSS, token.GTR, token.LEQ, token.GEQ:
+		op := p.advance()
+		right, err := p.term()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.BinaryExpr{
+			Left:  left,
+			Op:    op,
+			Right: right,
+		}, nil
+	}
+
+	return left, nil
 }
 
 func (p *Parser) term() (ast.Expr, error) {
@@ -85,7 +154,7 @@ func (p *Parser) factor() (ast.Expr, error) {
 }
 
 func (p *Parser) unary() (ast.Expr, error) {
-	if p.peek().Kind == token.SUB {
+	if p.peek().Kind == token.SUB || p.peek().Kind == token.NOT {
 		op := p.advance()
 		right, err := p.primary()
 		if err != nil {
