@@ -24,11 +24,12 @@ func (p *Parser) Init(src []byte) error {
 }
 
 /*
-expression -> term
+expression -> comparison
+comparison -> term ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term
 term       -> factor ( ( '+' | '-' ) factor )*
 factor     -> unary ( ( '*' | '/' ) unary )*
-unary      -> ( '-' )? primary
-primary    -> FLOAT | INT | '(' expression ')'
+unary      -> ( '-' | '!' )? primary
+primary    -> FLOAT | INT | CHAR | STRING | 'true' | 'false' | 'nil' | '(' expression ')'
 */
 
 func (p *Parser) Parse() (ast.Expr, error) {
@@ -105,7 +106,7 @@ func (p *Parser) unary() (ast.Expr, error) {
 
 func (p *Parser) primary() (ast.Expr, error) {
 	switch p.peek().Kind {
-	case token.FLOAT, token.INT:
+	case token.FLOAT, token.INT, token.CHAR, token.STRING, token.BOOL:
 		return &ast.BasicLit{Value: p.advance()}, nil
 	}
 	if p.peek().Kind == token.LPAREN {

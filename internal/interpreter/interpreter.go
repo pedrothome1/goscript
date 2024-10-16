@@ -77,7 +77,19 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("the operands must be numbers")
+	leftStr, isLeftStr := left.(string)
+	rightStr, isRightStr := right.(string)
+
+	if isLeftStr && isRightStr {
+		switch expr.Op.Kind {
+		case token.ADD:
+			return leftStr + rightStr, nil
+		default:
+			return nil, fmt.Errorf("invalid string operator")
+		}
+	}
+
+	return nil, fmt.Errorf("the operands must be both either numbers or strings")
 }
 
 func (r *Interpreter) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {

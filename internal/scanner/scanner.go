@@ -40,8 +40,22 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			s.addToken(token.LPAREN, nil)
 		case ')':
 			s.addToken(token.RPAREN, nil)
+		case '!':
+			s.addToken(token.NOT, nil)
 		case ' ', '\n', '\r', '\t':
 			break
+		case '\'':
+			if err := s.addChar(); err != nil {
+				return s.toks, err
+			}
+		case '"':
+			if err := s.addString(); err != nil {
+				return s.toks, err
+			}
+		case '`':
+			if err := s.addRawString(); err != nil {
+				return s.toks, err
+			}
 		default:
 			if s.isDigit(ch) {
 				if err := s.addNumber(); err != nil {
@@ -83,6 +97,118 @@ func (s *Scanner) addNumber() error {
 		return err
 	}
 	s.addToken(token.INT, num)
+	return nil
+}
+
+func (s *Scanner) addChar() error {
+	if s.peek() == '\'' {
+		return fmt.Errorf("empty char literal")
+	}
+	if s.peek() == '\n' {
+		return fmt.Errorf("char literal with newline")
+	}
+	var escaped uint8
+	if s.peek() == '\\' {
+		s.advance()
+		switch s.peek() {
+		case 'a':
+			escaped = '\a'
+		case 'b':
+			escaped = '\b'
+		case 'f':
+			escaped = '\f'
+		case 'n':
+			escaped = '\n'
+		case 'r':
+			escaped = '\r'
+		case 't':
+			escaped = '\t'
+		case 'v':
+			escaped = '\v'
+		case '\\':
+			escaped = '\\'
+		case '\'':
+			escaped = '\''
+		default:
+			return fmt.Errorf("invalid char literal escape sequence")
+		}
+	}
+	if s.advance(); s.peek() != '\'' {
+		return fmt.Errorf("char literal with more than one character")
+	}
+	s.advance()
+	if escaped != 0 {
+		s.toks = append(s.toks, token.Token{token.CHAR, int(escaped), s.src[s.start:s.pos]})
+	} else {
+		s.toks = append(s.toks, token.Token{token.CHAR, int(s.src[s.start+1]), s.src[s.start:s.pos]})
+	}
+	return nil
+}
+
+func (s *Scanner) addString() error {
+	var b []byte
+	for s.peek() != '"' && !s.atEnd() {
+		if s.peek() == '\n' {
+			return fmt.Errorf("string literal with newline")
+		}
+		if s.peek() == '\\' {
+			s.advance()
+			switch s.peek() {
+			case 'a':
+				b = append(b, '\a')
+			case 'b':
+				b = append(b, '\b')
+			case 'f':
+				b = append(b, '\f')
+			case 'n':
+				b = append(b, '\n')
+			case 'r':
+				b = append(b, '\r')
+			case 't':
+				b = append(b, '\t')
+			case 'v':
+				b = append(b, '\v')
+			case '\\':
+				b = append(b, '\\')
+			case '"':
+				b = append(b, '"')
+			default:
+				return fmt.Errorf("invalid string literal escape sequence")
+			}
+		} else {
+			b = append(b, s.peek())
+		}
+		s.advance()
+	}
+	if s.atEnd() {
+		return fmt.Errorf("unterminated string literal")
+	}
+	s.advance()
+	if len(b) == 0 {
+		s.toks = append(s.toks, token.Token{token.STRING, "", `""`})
+		return nil
+	}
+	s.toks = append(s.toks, token.Token{token.STRING, string(b), s.src[s.start:s.pos]})
+	return nil
+}
+
+func (s *Scanner) addRawString() error {
+	var b []byte
+	for s.peek() != '`' && !s.atEnd() {
+		if s.peek() != '\r' {
+			b = append(b, s.peek())
+		}
+		s.advance()
+	}
+	if s.atEnd() {
+		return fmt.Errorf("unterminated raw string literal")
+	}
+	s.advance()
+	if len(b) == 0 {
+		s.toks = append(s.toks, token.Token{token.STRING, ``, "``"})
+		return nil
+	}
+	s.toks = append(s.toks, token.Token{token.STRING, string(b), s.src[s.start:s.pos]})
 	return nil
 }
 

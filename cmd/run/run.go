@@ -47,6 +47,8 @@ func main() {
 			fmt.Printf("%d\n", v)
 		case float64:
 			fmt.Printf("%s\n", strconv.FormatFloat(v, 'f', -1, 64))
+		case string:
+			fmt.Printf("%q\n", v)
 		}
 	}
 }
