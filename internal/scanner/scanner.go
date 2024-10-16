@@ -45,42 +45,51 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 		case '<':
 			if s.peek() == '<' {
 				s.addToken(token.SHL, nil)
+				s.advance()
 			} else if s.peek() == '=' {
 				s.addToken(token.LEQ, nil)
+				s.advance()
 			} else {
 				s.addToken(token.LSS, nil)
 			}
 		case '>':
 			if s.peek() == '>' {
 				s.addToken(token.SHR, nil)
+				s.advance()
 			} else if s.peek() == '=' {
 				s.addToken(token.GEQ, nil)
+				s.advance()
 			} else {
 				s.addToken(token.GTR, nil)
 			}
 		case '!':
 			if s.peek() == '=' {
 				s.addToken(token.NEQ, nil)
+				s.advance()
 			} else {
 				s.addToken(token.NOT, nil)
 			}
 		case '=':
 			if s.peek() == '=' {
 				s.addToken(token.EQL, nil)
+				s.advance()
 			} else {
 				s.addToken(token.ASSIGN, nil)
 			}
 		case '|':
 			if s.peek() == '|' {
 				s.addToken(token.LOR, nil)
+				s.advance()
 			} else {
 				s.addToken(token.OR, nil)
 			}
 		case '&':
 			if s.peek() == '&' {
 				s.addToken(token.LAND, nil)
+				s.advance()
 			} else if s.peek() == '^' {
 				s.addToken(token.AND_NOT, nil)
+				s.advance()
 			} else {
 				s.addToken(token.AND, nil)
 			}
