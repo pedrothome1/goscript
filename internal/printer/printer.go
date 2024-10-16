@@ -29,6 +29,12 @@ func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (any, error) {
 		fmt.Fprintf(&p.sb, "%sBasicLit(float(%s))%s\n", p.indent(), val, p.comma)
 	case token.INT:
 		fmt.Fprintf(&p.sb, "%sBasicLit(int(%d))%s\n", p.indent(), lit.Value.Lit, p.comma)
+	case token.STRING:
+		fmt.Fprintf(&p.sb, "%sBasicLit(string(%q))%s\n", p.indent(), lit.Value.Lit, p.comma)
+	case token.BOOL:
+		fmt.Fprintf(&p.sb, "%sBasicLit(bool(%v))%s\n", p.indent(), lit.Value.Lit, p.comma)
+	case token.NIL:
+		fmt.Fprintf(&p.sb, "%sBasicLit(%v)%s\n", p.indent(), lit.Value.Lit, p.comma)
 	}
 
 	return nil, nil
@@ -53,7 +59,18 @@ func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 }
 
 func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
-	// TODO:
+	fmt.Fprintf(&p.sb, "%sUnaryExpr(\n", p.indent())
+	p.level += indent
+
+	parentComma := p.comma
+	p.comma = ","
+	fmt.Fprintf(&p.sb, "%s%s%s\n", p.indent(), expr.Op.Kind.String(), p.comma)
+	p.comma = ""
+	expr.Right.Accept(p)
+	p.comma = parentComma
+	p.level -= indent
+	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
+
 	return nil, nil
 }
 

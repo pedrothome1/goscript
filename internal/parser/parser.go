@@ -20,6 +20,7 @@ func (p *Parser) Init(src []byte) error {
 		return err
 	}
 	p.toks = toks
+	p.pos = 0
 	return nil
 }
 
