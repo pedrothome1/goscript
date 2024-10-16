@@ -40,10 +40,50 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			s.addToken(token.LPAREN, nil)
 		case ')':
 			s.addToken(token.RPAREN, nil)
+		case '^':
+			s.addToken(token.XOR, nil)
+		case '<':
+			if s.peek() == '<' {
+				s.addToken(token.SHL, nil)
+			} else if s.peek() == '=' {
+				s.addToken(token.LEQ, nil)
+			} else {
+				s.addToken(token.LSS, nil)
+			}
+		case '>':
+			if s.peek() == '>' {
+				s.addToken(token.SHR, nil)
+			} else if s.peek() == '=' {
+				s.addToken(token.GEQ, nil)
+			} else {
+				s.addToken(token.GTR, nil)
+			}
 		case '!':
-			s.addToken(token.NOT, nil)
-		case ' ', '\n', '\r', '\t':
-			break
+			if s.peek() == '=' {
+				s.addToken(token.NEQ, nil)
+			} else {
+				s.addToken(token.NOT, nil)
+			}
+		case '=':
+			if s.peek() == '=' {
+				s.addToken(token.EQL, nil)
+			} else {
+				s.addToken(token.ASSIGN, nil)
+			}
+		case '|':
+			if s.peek() == '|' {
+				s.addToken(token.LOR, nil)
+			} else {
+				s.addToken(token.OR, nil)
+			}
+		case '&':
+			if s.peek() == '&' {
+				s.addToken(token.LAND, nil)
+			} else if s.peek() == '^' {
+				s.addToken(token.AND_NOT, nil)
+			} else {
+				s.addToken(token.AND, nil)
+			}
 		case '\'':
 			if err := s.addChar(); err != nil {
 				return s.toks, err
@@ -56,6 +96,8 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			if err := s.addRawString(); err != nil {
 				return s.toks, err
 			}
+		case ' ', '\n', '\r', '\t':
+			break
 		default:
 			if s.isDigit(ch) {
 				if err := s.addNumber(); err != nil {

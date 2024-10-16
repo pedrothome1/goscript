@@ -21,19 +21,26 @@ const (
 	QUO
 	REM
 
-	LAND
-	LOR
+	AND     // &
+	OR      // |
+	XOR     // ^
+	SHL     // <<
+	SHR     // >>
+	AND_NOT // &^
 
-	EQL
-	NEQ
-	LSS
-	GTR
-	LEQ
-	GEQ
+	LAND // &&
+	LOR  // ||
 
-	NOT
+	EQL // ==
+	NEQ // !=
+	LSS // <
+	GTR // >
+	LEQ // <=
+	GEQ // >=
 
-	ASSIGN
+	NOT // !
+
+	ASSIGN // =
 
 	LPAREN
 	RPAREN
@@ -57,15 +64,21 @@ var kinds = map[Kind]string{
 	MUL:     "MUL",
 	QUO:     "QUO",
 	REM:     "REM",
+	AND:     "AND",
+	OR:      "OR",
+	XOR:     "XOR",
+	SHL:     "SHL",
+	SHR:     "SHR",
+	AND_NOT: "AND_NOT",
 	LAND:    "LAND",
 	LOR:     "LOR",
 	EQL:     "EQL",
+	NEQ:     "NEQ",
 	LSS:     "LSS",
 	GTR:     "GTR",
-	NOT:     "NOT",
-	NEQ:     "NEQ",
 	LEQ:     "LEQ",
 	GEQ:     "GEQ",
+	NOT:     "NOT",
 	ASSIGN:  "ASSIGN",
 	LPAREN:  "LPAREN",
 	RPAREN:  "RPAREN",
