@@ -28,8 +28,8 @@ expression   -> logical_or
 logical_or   -> logical_and ( ( '||' ) logical_and )*
 logical_and  -> comparison ( ( '&&' ) comparison )*
 comparison   -> term ( ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term )?
-term         -> factor ( ( '+' | '-' ) factor )*
-factor       -> unary ( ( '*' | '/' ) unary )*
+term         -> factor ( ( '+' | '-' | '|' | '^' ) factor )*
+factor       -> unary ( ( '*' | '/' | '&' | '&^' | '<<' | '>>' ) unary )*
 unary        -> ( '-' | '!' )? primary
 primary      -> FLOAT | INT | CHAR | STRING | 'true' | 'false' | 'nil' | '(' expression ')'
 */
@@ -115,7 +115,7 @@ func (p *Parser) term() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for p.peek().Kind == token.ADD || p.peek().Kind == token.SUB {
+	for p.peek().Kind == token.ADD || p.peek().Kind == token.SUB || p.peek().Kind == token.OR || p.peek().Kind == token.XOR {
 		op := p.advance()
 		right, err := p.factor()
 		if err != nil {
@@ -137,7 +137,8 @@ func (p *Parser) factor() (ast.Expr, error) {
 		return nil, err
 	}
 
-	for p.peek().Kind == token.MUL || p.peek().Kind == token.QUO || p.peek().Kind == token.REM {
+	for p.peek().Kind == token.MUL || p.peek().Kind == token.QUO || p.peek().Kind == token.REM || p.peek().Kind == token.AND ||
+		p.peek().Kind == token.AND_NOT || p.peek().Kind == token.SHL || p.peek().Kind == token.SHR {
 		op := p.advance()
 		right, err := p.unary()
 		if err != nil {
