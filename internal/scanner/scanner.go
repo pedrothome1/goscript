@@ -40,6 +40,28 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			s.addToken(token.LPAREN, nil)
 		case ')':
 			s.addToken(token.RPAREN, nil)
+		case '[':
+			s.addToken(token.LBRACK, nil)
+		case ']':
+			s.addToken(token.RBRACK, nil)
+		case '{':
+			s.addToken(token.LBRACE, nil)
+		case '}':
+			s.addToken(token.RBRACE, nil)
+		case ';':
+			s.addToken(token.SEMICOLON, nil)
+		case ':':
+			s.addToken(token.COLON, nil)
+		case ',':
+			s.addToken(token.COMMA, nil)
+		case '.':
+			if s.peek() == '.' && s.peekNext() == '.' {
+				s.addToken(token.ELLIPSIS, nil)
+				s.advance()
+				s.advance()
+			} else {
+				s.addToken(token.PERIOD, nil)
+			}
 		case '^':
 			s.addToken(token.XOR, nil)
 		case '<':
@@ -297,6 +319,13 @@ func (s *Scanner) peek() byte {
 		return '\x00'
 	}
 	return s.src[s.pos]
+}
+
+func (s *Scanner) peekNext() byte {
+	if s.pos+1 >= len(s.src) {
+		return '\x00'
+	}
+	return s.src[s.pos+1]
 }
 
 func (s *Scanner) isDigit(c byte) bool {
