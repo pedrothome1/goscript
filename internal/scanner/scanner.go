@@ -11,18 +11,18 @@ type Scanner struct {
 	src   string
 	start int
 	pos   int
-	toks  []token.Token
 	line  int
 	col   int
+	toks  []token.Token
 }
 
 func (s *Scanner) Init(src []byte) {
 	s.src = string(src)
 	s.start = 0
 	s.pos = 0
-	s.toks = make([]token.Token, 0)
 	s.line = 1
 	s.col = 0
+	s.toks = make([]token.Token, 0)
 }
 
 func (s *Scanner) Scan() ([]token.Token, error) {

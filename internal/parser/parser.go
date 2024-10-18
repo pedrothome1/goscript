@@ -209,7 +209,7 @@ func (p *Parser) peek() token.Token {
 
 func (p *Parser) peekNext() token.Token {
 	if p.pos+1 >= len(p.toks) {
-		return token.Token{token.EOF, nil, ""}
+		return token.Token{token.EOF, nil, "", -1}
 	}
 	return p.toks[p.pos+1]
 }
