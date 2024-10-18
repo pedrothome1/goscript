@@ -28,8 +28,11 @@ const (
 	SHR     // >>
 	AND_NOT // &^
 
-	LAND // &&
-	LOR  // ||
+	LAND  // &&
+	LOR   // ||
+	ARROW // <-
+	INC   // ++
+	DEC   // --
 
 	EQL // ==
 	NEQ // !=
@@ -108,6 +111,9 @@ var kinds = map[Kind]string{
 	AND_NOT:     "AND_NOT",
 	LAND:        "LAND",
 	LOR:         "LOR",
+	ARROW:       "ARROW",
+	INC:         "INC",
+	DEC:         "DEC",
 	EQL:         "EQL",
 	NEQ:         "NEQ",
 	LSS:         "LSS",

@@ -15,13 +15,33 @@ func TestScanner_Scan(t *testing.T) {
 
 	toks, err := s.Scan()
 	if err != nil {
-		t.Errorf("err == nil: %s\n", err.Error())
+		t.Errorf("err != nil: %s\n", err.Error())
 	}
 
 	for _, tok := range toks {
 		fmt.Printf("%s ", tok.String())
 	}
 	fmt.Println()
+}
+
+func TestScanner_Scan_AutoSemicolon(t *testing.T) {
+	// print correct position of offending token
+	src := `var a = 1
+var b = 1 + 2
+var b2 = 2
+`
+
+	s := &scanner.Scanner{}
+	s.Init([]byte(src))
+
+	toks, err := s.Scan()
+	if err != nil {
+		t.Errorf("err != nil: %s\n", err.Error())
+	}
+
+	for _, tok := range toks {
+		fmt.Printf("%s\n", tok.String())
+	}
 }
 
 func TestScanner_Scan_ErrorPosition(t *testing.T) {

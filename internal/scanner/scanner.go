@@ -32,9 +32,19 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 
 		switch ch {
 		case '+':
-			s.addToken(token.ADD, nil)
+			if s.peek() == '+' {
+				s.addToken(token.INC, nil)
+				s.advance()
+			} else {
+				s.addToken(token.ADD, nil)
+			}
 		case '-':
-			s.addToken(token.SUB, nil)
+			if s.peek() == '-' {
+				s.addToken(token.DEC, nil)
+				s.advance()
+			} else {
+				s.addToken(token.SUB, nil)
+			}
 		case '*':
 			s.addToken(token.MUL, nil)
 		case '/':
@@ -75,6 +85,9 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 				s.advance()
 			} else if s.peek() == '=' {
 				s.addToken(token.LEQ, nil)
+				s.advance()
+			} else if s.peek() == '-' {
+				s.addToken(token.ARROW, nil)
 				s.advance()
 			} else {
 				s.addToken(token.LSS, nil)
@@ -135,6 +148,7 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 		case '\n':
 			s.line++
 			s.col = 0
+			s.addAutoSemi()
 		case ' ', '\r', '\t':
 			break
 		default:
@@ -152,6 +166,7 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			}
 		}
 	}
+	s.addAutoSemi()
 	s.toks = append(s.toks, token.Token{token.EOF, nil, "", s.pos})
 	return s.toks, nil
 }
@@ -307,6 +322,14 @@ func (s *Scanner) addRawString() error {
 	}
 	s.addToken(token.STRING, string(b))
 	return nil
+}
+
+func (s *Scanner) addAutoSemi() {
+	switch s.toks[len(s.toks)-1].Kind {
+	case token.IDENT, token.NIL, token.INT, token.FLOAT, token.CHAR, token.STRING, token.BREAK, token.CONTINUE,
+		token.FALLTHROUGH, token.RETURN, token.INC, token.DEC, token.RPAREN, token.RBRACK, token.RBRACE:
+		s.toks = append(s.toks, token.Token{token.SEMICOLON, nil, ";", -1})
+	}
 }
 
 func (s *Scanner) atEnd() bool {

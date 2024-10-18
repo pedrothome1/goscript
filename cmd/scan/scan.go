@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/pedrothome1/goscript/internal/scanner"
 	"log"
@@ -26,7 +27,12 @@ func main() {
 		s.Init([]byte(text))
 		toks, err := s.Scan()
 		if err != nil {
-			log.Println(err.Error())
+			var scanError *scanner.ScanError
+			if errors.As(err, &scanError) {
+				scanError.Report()
+			} else {
+				log.Println(err.Error())
+			}
 			continue
 		}
 		for _, t := range toks {
