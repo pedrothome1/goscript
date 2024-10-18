@@ -159,39 +159,39 @@ func Keyword(s string) (Token, bool) {
 }
 
 var keywords = map[string]Token{
-	"false": {BOOL, false, "false"},
-	"true":  {BOOL, true, "true"},
-	"nil":   {NIL, nil, "nil"},
-
-	"break":       {BREAK, nil, "break"},
-	"case":        {CASE, nil, "case"},
-	"chan":        {CHAN, nil, "chan"},
-	"const":       {CONST, nil, "const"},
-	"continue":    {CONTINUE, nil, "continue"},
-	"default":     {DEFAULT, nil, "default"},
-	"defer":       {DEFER, nil, "defer"},
-	"else":        {ELSE, nil, "else"},
-	"fallthrough": {FALLTHROUGH, nil, "fallthrough"},
-	"for":         {FOR, nil, "for"},
-	"func":        {FUNC, nil, "func"},
-	"go":          {GO, nil, "go"},
-	"goto":        {GOTO, nil, "goto"},
-	"if":          {IF, nil, "if"},
-	"import":      {IMPORT, nil, "import"},
-	"interface":   {INTERFACE, nil, "interface"},
-	"map":         {MAP, nil, "map"},
-	"range":       {RANGE, nil, "range"},
-	"return":      {RETURN, nil, "return"},
-	"struct":      {STRUCT, nil, "struct"},
-	"switch":      {SWITCH, nil, "switch"},
-	"type":        {TYPE, nil, "type"},
-	"var":         {VAR, nil, "var"},
+	"false":       {BOOL, false, "false", 0},
+	"true":        {BOOL, true, "true", 0},
+	"nil":         {NIL, nil, "nil", 0},
+	"break":       {BREAK, nil, "break", 0},
+	"case":        {CASE, nil, "case", 0},
+	"chan":        {CHAN, nil, "chan", 0},
+	"const":       {CONST, nil, "const", 0},
+	"continue":    {CONTINUE, nil, "continue", 0},
+	"default":     {DEFAULT, nil, "default", 0},
+	"defer":       {DEFER, nil, "defer", 0},
+	"else":        {ELSE, nil, "else", 0},
+	"fallthrough": {FALLTHROUGH, nil, "fallthrough", 0},
+	"for":         {FOR, nil, "for", 0},
+	"func":        {FUNC, nil, "func", 0},
+	"go":          {GO, nil, "go", 0},
+	"goto":        {GOTO, nil, "goto", 0},
+	"if":          {IF, nil, "if", 0},
+	"import":      {IMPORT, nil, "import", 0},
+	"interface":   {INTERFACE, nil, "interface", 0},
+	"map":         {MAP, nil, "map", 0},
+	"range":       {RANGE, nil, "range", 0},
+	"return":      {RETURN, nil, "return", 0},
+	"struct":      {STRUCT, nil, "struct", 0},
+	"switch":      {SWITCH, nil, "switch", 0},
+	"type":        {TYPE, nil, "type", 0},
+	"var":         {VAR, nil, "var", 0},
 }
 
 type Token struct {
 	Kind   Kind
 	Lit    any
 	Lexeme string
+	Pos    int
 }
 
 func (t *Token) String() string {

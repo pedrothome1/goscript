@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pedrothome1/goscript/internal/token"
 	"strconv"
+	"strings"
 )
 
 type Scanner struct {
@@ -11,6 +12,8 @@ type Scanner struct {
 	start int
 	pos   int
 	toks  []token.Token
+	line  int
+	col   int
 }
 
 func (s *Scanner) Init(src []byte) {
@@ -18,6 +21,8 @@ func (s *Scanner) Init(src []byte) {
 	s.start = 0
 	s.pos = 0
 	s.toks = make([]token.Token, 0)
+	s.line = 1
+	s.col = 0
 }
 
 func (s *Scanner) Scan() ([]token.Token, error) {
@@ -127,7 +132,10 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			if err := s.addRawString(); err != nil {
 				return s.toks, err
 			}
-		case ' ', '\n', '\r', '\t':
+		case '\n':
+			s.line++
+			s.col = 0
+		case ' ', '\r', '\t':
 			break
 		default:
 			if s.isDigit(ch) {
@@ -140,16 +148,16 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 				}
 			} else {
 				s.addToken(token.ILLEGAL, nil)
-				return s.toks, fmt.Errorf("invalid character: %q", ch)
+				return s.toks, s.scanError(ch)
 			}
 		}
 	}
-	s.toks = append(s.toks, token.Token{token.EOF, nil, ""})
+	s.toks = append(s.toks, token.Token{token.EOF, nil, "", s.pos})
 	return s.toks, nil
 }
 
 func (s *Scanner) addToken(kind token.Kind, lit any) {
-	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos]})
+	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos], s.start})
 }
 
 func (s *Scanner) addNumber() error {
@@ -182,7 +190,7 @@ func (s *Scanner) addIdentifier() error {
 		s.advance()
 	}
 	if t, ok := token.Keyword(s.src[s.start:s.pos]); ok {
-		s.toks = append(s.toks, t)
+		s.addToken(t.Kind, t.Lit)
 		return nil
 	}
 	s.addToken(token.IDENT, nil)
@@ -227,9 +235,9 @@ func (s *Scanner) addChar() error {
 	}
 	s.advance()
 	if escaped != 0 {
-		s.toks = append(s.toks, token.Token{token.CHAR, int(escaped), s.src[s.start:s.pos]})
+		s.addToken(token.CHAR, int(escaped))
 	} else {
-		s.toks = append(s.toks, token.Token{token.CHAR, int(s.src[s.start+1]), s.src[s.start:s.pos]})
+		s.addToken(token.CHAR, int(s.src[s.start+1]))
 	}
 	return nil
 }
@@ -274,10 +282,10 @@ func (s *Scanner) addString() error {
 	}
 	s.advance()
 	if len(b) == 0 {
-		s.toks = append(s.toks, token.Token{token.STRING, "", `""`})
+		s.addToken(token.STRING, "")
 		return nil
 	}
-	s.toks = append(s.toks, token.Token{token.STRING, string(b), s.src[s.start:s.pos]})
+	s.addToken(token.STRING, string(b))
 	return nil
 }
 
@@ -294,10 +302,10 @@ func (s *Scanner) addRawString() error {
 	}
 	s.advance()
 	if len(b) == 0 {
-		s.toks = append(s.toks, token.Token{token.STRING, ``, "``"})
+		s.addToken(token.STRING, ``)
 		return nil
 	}
-	s.toks = append(s.toks, token.Token{token.STRING, string(b), s.src[s.start:s.pos]})
+	s.addToken(token.STRING, string(b))
 	return nil
 }
 
@@ -311,6 +319,7 @@ func (s *Scanner) advance() byte {
 	}
 	ch := s.src[s.pos]
 	s.pos++
+	s.col++
 	return ch
 }
 
@@ -338,4 +347,41 @@ func (s *Scanner) isAlpha(c byte) bool {
 
 func (s *Scanner) isAlphaNumeric(c byte) bool {
 	return s.isAlpha(c) || s.isDigit(c)
+}
+
+type ScanError struct {
+	message string
+	details string
+}
+
+func (e *ScanError) Error() string {
+	return e.message
+}
+
+func (e *ScanError) Report() {
+	fmt.Print(e.details)
+}
+
+func (s *Scanner) scanError(ch byte) *ScanError {
+	ln := 1
+	i := 0
+	for ; ln < s.line; i++ {
+		if s.src[i] == '\n' {
+			ln++
+		}
+	}
+
+	lineStr := s.src[i:s.pos]
+
+	var sb strings.Builder
+
+	msg := fmt.Sprintf("invalid character %q at line %d and col %d", ch, s.line, s.col)
+	fmt.Fprintln(&sb, msg)
+	fmt.Fprintf(&sb, "%4s%s\n", " ", lineStr)
+	fmt.Fprintf(&sb, "%4s%"+strconv.Itoa(s.pos-i)+"s\n", " ", "^")
+
+	return &ScanError{
+		message: msg,
+		details: sb.String(),
+	}
 }
