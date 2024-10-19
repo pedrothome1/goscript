@@ -25,26 +25,6 @@ func (p *Parser) Init(src []byte) error {
 }
 
 /*
---- Syntax Grammar ---
-program          -> statement* EOF
-
-declaration      -> varDecl | statement
-
-varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
-
-statement        -> exprStmt
-exprStmt         -> expression ';'
-
-expression       -> logical_or
-logical_or       -> logical_and ( ( '||' ) logical_and )*
-logical_and      -> comparison ( ( '&&' ) comparison )*
-comparison       -> term ( ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term )?
-term             -> factor ( ( '+' | '-' | '|' | '^' ) factor )*
-factor           -> unary ( ( '*' | '/' | '&' | '&^' | '<<' | '>>' ) unary )*
-unary            -> ( '-' | '!' )? primary
-primary          -> QUALIFIED_IDENT | IDENT | FLOAT | INT | CHAR | STRING |
-                    'true' | 'false' | 'nil' | '(' expression ')'
-
 --- Lexical Grammar ---
 TYPE             -> TYPE_NAME
 TYPE_NAME        -> IDENT | QUALIFIED_IDENT
@@ -60,10 +40,122 @@ NIL              -> 'nil'
 ALPHA            -> 'A' ... 'Z' | 'a' ... 'z' | '_'
 DIGIT            -> '0' ... '9'
 ESC_SEQ          -> '\a' | '\b' | '\f' | '\n' | '\r' | '\t' | '\v' | '\\' | '\'' | '\"'
+
+--- Syntax Grammar ---
+program          -> statement* EOF
+
+declaration      -> varDecl | statement
+varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
+
+statement        -> exprStmt | printStmt | assignStmt
+assignStmt       -> IDENT '=' expression ';'
+exprStmt         -> expression ';'
+printStmt        -> 'print' expression ';'
+
+expression       -> logical_or
+logical_or       -> logical_and ( ( '||' ) logical_and )*
+logical_and      -> comparison ( ( '&&' ) comparison )*
+comparison       -> term ( ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term )?
+term             -> factor ( ( '+' | '-' | '|' | '^' ) factor )*
+factor           -> unary ( ( '*' | '/' | '&' | '&^' | '<<' | '>>' ) unary )*
+unary            -> ( '-' | '!' )? primary
+primary          -> QUALIFIED_IDENT | IDENT | FLOAT | INT | CHAR | STRING |
+                    'true' | 'false' | 'nil' | '(' expression ')'
 */
 
-func (p *Parser) Parse() (ast.Expr, error) {
-	return p.expression()
+func (p *Parser) Parse() ([]ast.Stmt, error) {
+	var stmts []ast.Stmt
+	for !p.atEnd() {
+		d, err := p.declaration()
+		if err != nil {
+			return stmts, err
+		}
+		stmts = append(stmts, d)
+	}
+	return stmts, nil
+}
+
+func (p *Parser) declaration() (ast.Stmt, error) {
+	if p.peek().Kind == token.VAR {
+		return p.varDeclaration()
+	}
+	return p.statement()
+}
+
+// For now, only parsing declarations of the form `var name = "expr"` without type
+// TODO: implement according to the syntax grammar
+func (p *Parser) varDeclaration() (ast.Stmt, error) {
+	p.advance()
+	if p.peek().Kind != token.IDENT {
+		return nil, fmt.Errorf("variable name expected")
+	}
+	name := p.advance()
+	if p.peek().Kind != token.ASSIGN {
+		return nil, fmt.Errorf("assignment operator expected")
+	}
+	p.advance()
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after variable declaration")
+	}
+	p.advance()
+	return &ast.VarDecl{
+		Name:  name,
+		Type:  nil,
+		Value: expr,
+	}, nil
+}
+
+func (p *Parser) statement() (ast.Stmt, error) {
+	if p.peek().Kind == token.PRINT {
+		return p.printStmt()
+	}
+	if p.peek().Kind == token.IDENT && p.peekNext().Kind == token.ASSIGN {
+		return p.assignStmt()
+	}
+	return p.expressionStmt()
+}
+
+func (p *Parser) printStmt() (ast.Stmt, error) {
+	p.advance()
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after print statement")
+	}
+	p.advance()
+	return &ast.PrintStmt{Expr: expr}, nil
+}
+
+func (p *Parser) assignStmt() (ast.Stmt, error) {
+	ident := p.advance()
+	p.advance() // consume '='
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after assignment statement")
+	}
+	p.advance()
+	return &ast.AssignStmt{Name: ident, Value: expr}, nil
+}
+
+func (p *Parser) expressionStmt() (ast.Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after expression statement")
+	}
+	p.advance()
+	return &ast.ExprStmt{Expr: expr}, nil
 }
 
 func (p *Parser) expression() (ast.Expr, error) {
@@ -206,6 +298,8 @@ func (p *Parser) primary() (ast.Expr, error) {
 	switch p.peek().Kind {
 	case token.FLOAT, token.INT, token.CHAR, token.STRING, token.BOOL, token.NIL:
 		return &ast.BasicLit{Value: p.advance()}, nil
+	case token.IDENT:
+		return &ast.Ident{Name: p.advance()}, nil
 	}
 	if p.peek().Kind == token.LPAREN {
 		p.advance()

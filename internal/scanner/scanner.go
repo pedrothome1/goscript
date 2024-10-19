@@ -326,8 +326,8 @@ func (s *Scanner) addRawString() error {
 
 func (s *Scanner) addAutoSemi() {
 	switch s.toks[len(s.toks)-1].Kind {
-	case token.IDENT, token.NIL, token.INT, token.FLOAT, token.CHAR, token.STRING, token.BREAK, token.CONTINUE,
-		token.FALLTHROUGH, token.RETURN, token.INC, token.DEC, token.RPAREN, token.RBRACK, token.RBRACE:
+	case token.IDENT, token.NIL, token.INT, token.BOOL, token.FLOAT, token.CHAR, token.STRING, token.BREAK,
+		token.CONTINUE, token.FALLTHROUGH, token.RETURN, token.INC, token.DEC, token.RPAREN, token.RBRACK, token.RBRACE:
 		s.toks = append(s.toks, token.Token{token.SEMICOLON, nil, ";", -1})
 	}
 }

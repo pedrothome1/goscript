@@ -81,6 +81,7 @@ const (
 	SWITCH
 	TYPE
 	VAR
+	PRINT
 
 	NIL
 )
@@ -156,6 +157,7 @@ var kinds = map[Kind]string{
 	SWITCH:      "SWITCH",
 	TYPE:        "TYPE",
 	VAR:         "VAR",
+	PRINT:       "PRINT",
 	NIL:         "NIL",
 }
 
@@ -191,6 +193,7 @@ var keywords = map[string]Token{
 	"switch":      {SWITCH, nil, "switch", 0},
 	"type":        {TYPE, nil, "type", 0},
 	"var":         {VAR, nil, "var", 0},
+	"print":       {PRINT, nil, "print", 0},
 }
 
 type Token struct {

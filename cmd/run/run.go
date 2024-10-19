@@ -7,12 +7,11 @@ import (
 	"github.com/pedrothome1/goscript/internal/parser"
 	"log"
 	"os"
-	"strconv"
 )
 
 func main() {
 	log.SetFlags(0)
-	eval := &interpreter.Interpreter{}
+	runner := interpreter.New()
 	sc := bufio.NewScanner(os.Stdin)
 	sc.Split(bufio.ScanLines)
 
@@ -31,29 +30,16 @@ func main() {
 			log.Printf("scan error: %s\n", err.Error())
 			continue
 		}
-		expr, err := p.Parse()
+		stmts, err := p.Parse()
 		if err != nil {
 			log.Printf("parse error: %s\n", err.Error())
 			continue
 		}
-		result, err := eval.Run(expr)
-		if err != nil {
-			log.Printf("interpreter error: %s\n", err.Error())
-			continue
-		}
-
-		switch v := result.Native.(type) {
-		case int:
-			fmt.Printf("%d\n", v)
-		case bool:
-			fmt.Printf("%v\n", v)
-		case float64:
-			fmt.Printf("%s\n", strconv.FormatFloat(v, 'f', -1, 64))
-		case string:
-			fmt.Printf("%q\n", v)
-		default:
-			if result == nil {
-				fmt.Printf("%v\n", v)
+		for _, stmt := range stmts {
+			err = runner.Run(stmt)
+			if err != nil {
+				log.Printf("runtime error: %s\n", err.Error())
+				continue
 			}
 		}
 	}
