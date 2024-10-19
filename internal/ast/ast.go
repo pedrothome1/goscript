@@ -2,18 +2,19 @@ package ast
 
 import (
 	"github.com/pedrothome1/goscript/internal/token"
+	"github.com/pedrothome1/goscript/internal/types"
 )
 
 type Visitor interface {
-	VisitBasicLit(lit *BasicLit) (any, error)
-	VisitBinaryExpr(expr *BinaryExpr) (any, error)
-	VisitUnaryExpr(expr *UnaryExpr) (any, error)
-	VisitParenExpr(expr *ParenExpr) (any, error)
+	VisitBasicLit(lit *BasicLit) (*types.Value, error)
+	VisitBinaryExpr(expr *BinaryExpr) (*types.Value, error)
+	VisitUnaryExpr(expr *UnaryExpr) (*types.Value, error)
+	VisitParenExpr(expr *ParenExpr) (*types.Value, error)
 }
 
 // --- expressions ---
 type Expr interface {
-	Accept(v Visitor) (any, error)
+	Accept(v Visitor) (*types.Value, error)
 	exprNode()
 }
 
@@ -36,11 +37,11 @@ type ParenExpr struct {
 	X Expr
 }
 
-func (e *BasicLit) Accept(v Visitor) (any, error)   { return v.VisitBasicLit(e) }
-func (e *BasicLit) exprNode()                       {}
-func (e *BinaryExpr) Accept(v Visitor) (any, error) { return v.VisitBinaryExpr(e) }
-func (e *BinaryExpr) exprNode()                     {}
-func (e *UnaryExpr) Accept(v Visitor) (any, error)  { return v.VisitUnaryExpr(e) }
-func (e *UnaryExpr) exprNode()                      {}
-func (e *ParenExpr) Accept(v Visitor) (any, error)  { return v.VisitParenExpr(e) }
-func (e *ParenExpr) exprNode()                      {}
+func (e *BasicLit) Accept(v Visitor) (*types.Value, error) { return v.VisitBasicLit(e) }
+func (e *BasicLit) exprNode()                                {}
+func (e *BinaryExpr) Accept(v Visitor) (*types.Value, error) { return v.VisitBinaryExpr(e) }
+func (e *BinaryExpr) exprNode()                             {}
+func (e *UnaryExpr) Accept(v Visitor) (*types.Value, error) { return v.VisitUnaryExpr(e) }
+func (e *UnaryExpr) exprNode()                              {}
+func (e *ParenExpr) Accept(v Visitor) (*types.Value, error) { return v.VisitParenExpr(e) }
+func (e *ParenExpr) exprNode()                              {}

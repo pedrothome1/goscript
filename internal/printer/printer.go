@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/token"
+	"github.com/pedrothome1/goscript/internal/types"
 	"strconv"
 	"strings"
 )
@@ -22,7 +23,7 @@ func (p *Printer) String(expr ast.Expr) string {
 	return p.sb.String()
 }
 
-func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (any, error) {
+func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
 	switch lit.Value.Kind {
 	case token.FLOAT:
 		val := strconv.FormatFloat(lit.Value.Lit.(float64), 'f', -1, 64)
@@ -40,7 +41,7 @@ func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (any, error) {
 	return nil, nil
 }
 
-func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
+func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
 	fmt.Fprintf(&p.sb, "%sBinaryExpr(\n", p.indent())
 	p.level += indent
 
@@ -58,7 +59,7 @@ func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (any, error) {
 	return nil, nil
 }
 
-func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
+func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
 	fmt.Fprintf(&p.sb, "%sUnaryExpr(\n", p.indent())
 	p.level += indent
 
@@ -74,7 +75,7 @@ func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (any, error) {
 	return nil, nil
 }
 
-func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (any, error) {
+func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (*types.Value, error) {
 	fmt.Fprintf(&p.sb, "%sParenExpr(\n", p.indent())
 	p.level += indent
 	expr.X.Accept(p)

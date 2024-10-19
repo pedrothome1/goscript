@@ -25,14 +25,41 @@ func (p *Parser) Init(src []byte) error {
 }
 
 /*
-expression   -> logical_or
-logical_or   -> logical_and ( ( '||' ) logical_and )*
-logical_and  -> comparison ( ( '&&' ) comparison )*
-comparison   -> term ( ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term )?
-term         -> factor ( ( '+' | '-' | '|' | '^' ) factor )*
-factor       -> unary ( ( '*' | '/' | '&' | '&^' | '<<' | '>>' ) unary )*
-unary        -> ( '-' | '!' )? primary
-primary      -> FLOAT | INT | CHAR | STRING | 'true' | 'false' | 'nil' | '(' expression ')'
+--- Syntax Grammar ---
+program          -> statement* EOF
+
+declaration      -> varDecl | statement
+
+varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
+
+statement        -> exprStmt
+exprStmt         -> expression ';'
+
+expression       -> logical_or
+logical_or       -> logical_and ( ( '||' ) logical_and )*
+logical_and      -> comparison ( ( '&&' ) comparison )*
+comparison       -> term ( ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term )?
+term             -> factor ( ( '+' | '-' | '|' | '^' ) factor )*
+factor           -> unary ( ( '*' | '/' | '&' | '&^' | '<<' | '>>' ) unary )*
+unary            -> ( '-' | '!' )? primary
+primary          -> QUALIFIED_IDENT | IDENT | FLOAT | INT | CHAR | STRING |
+                    'true' | 'false' | 'nil' | '(' expression ')'
+
+--- Lexical Grammar ---
+TYPE             -> TYPE_NAME
+TYPE_NAME        -> IDENT | QUALIFIED_IDENT
+QUALIFIED_IDENT  -> PACKAGE_NAME '.' IDENT
+PACKAGE_NAME     -> IDENT
+IDENT            -> ALPHA ( ALPHA | DIGIT )*
+INT              -> DIGIT+
+FLOAT            -> DIGIT+ '.' DIGIT+
+CHAR             -> "'" <any char except '\' and "'"> | <any ESC_SEQ except '\"'> "'"
+STRING           -> '"' ( <any char except '\' and '"' | <any ESC_SEQ except '\''> )* '"'
+BOOL             -> 'false' | 'true'
+NIL              -> 'nil'
+ALPHA            -> 'A' ... 'Z' | 'a' ... 'z' | '_'
+DIGIT            -> '0' ... '9'
+ESC_SEQ          -> '\a' | '\b' | '\f' | '\n' | '\r' | '\t' | '\v' | '\\' | '\'' | '\"'
 */
 
 func (p *Parser) Parse() (ast.Expr, error) {

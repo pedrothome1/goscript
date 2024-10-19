@@ -42,7 +42,7 @@ func main() {
 			continue
 		}
 
-		switch v := result.(type) {
+		switch v := result.Native.(type) {
 		case int:
 			fmt.Printf("%d\n", v)
 		case bool:
