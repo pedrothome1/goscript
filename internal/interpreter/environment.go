@@ -6,11 +6,12 @@ import (
 )
 
 type Environment struct {
-	m map[string]*types.Value
+	up *Environment
+	m  map[string]*types.Value
 }
 
-func newEnvironment() *Environment {
-	return &Environment{m: make(map[string]*types.Value)}
+func newEnvironment(upper *Environment) *Environment {
+	return &Environment{up: upper, m: make(map[string]*types.Value)}
 }
 
 func (e *Environment) Define(name string, value *types.Value) error {
@@ -22,9 +23,12 @@ func (e *Environment) Define(name string, value *types.Value) error {
 }
 
 func (e *Environment) Assign(name string, value *types.Value) error {
-	v, err := e.Get(name)
-	if err != nil {
-		return err
+	v, ok := e.m[name]
+	if !ok {
+		if e.up != nil {
+			return e.up.Assign(name, value)
+		}
+		return fmt.Errorf("variable not defined")
 	}
 	if v.Type != value.Type {
 		return fmt.Errorf("incompatible type")
@@ -36,6 +40,9 @@ func (e *Environment) Assign(name string, value *types.Value) error {
 func (e *Environment) Get(name string) (*types.Value, error) {
 	if v, ok := e.m[name]; ok {
 		return v, nil
+	}
+	if e.up != nil {
+		return e.up.Get(name)
 	}
 	return nil, fmt.Errorf("variable not defined")
 }

@@ -15,11 +15,26 @@ type Interpreter struct {
 }
 
 func New() *Interpreter {
-	return &Interpreter{env: newEnvironment()}
+	return &Interpreter{env: newEnvironment(nil)}
 }
 
 func (r *Interpreter) Run(stmt ast.Stmt) error {
 	return stmt.Accept(r)
+}
+
+func (r *Interpreter) RunList(list []ast.Stmt, env *Environment) error {
+	defer func(prev *Environment) {
+		r.env = prev
+	}(r.env)
+
+	r.env = env
+	for _, stmt := range list {
+		err := r.Run(stmt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *Interpreter) Eval(expr ast.Expr) (*types.Value, error) {
@@ -243,6 +258,10 @@ func (r *Interpreter) VisitPrintStmt(stmt *ast.PrintStmt) error {
 func (r *Interpreter) VisitExprStmt(stmt *ast.ExprStmt) error {
 	_, err := r.Eval(stmt.Expr)
 	return err
+}
+
+func (r *Interpreter) VisitBlockStmt(stmt *ast.BlockStmt) error {
+	return r.RunList(stmt.List, newEnvironment(r.env))
 }
 
 func (r *Interpreter) VisitAssignStmt(stmt *ast.AssignStmt) error {

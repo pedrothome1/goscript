@@ -47,10 +47,11 @@ program          -> statement* EOF
 declaration      -> varDecl | statement
 varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
 
-statement        -> exprStmt | printStmt | assignStmt
+statement        -> exprStmt | printStmt | assignStmt | blockStmt
 assignStmt       -> IDENT '=' expression ';'
 exprStmt         -> expression ';'
 printStmt        -> 'print' expression ';'
+blockStmt        -> '{' declaration* '}' ';'
 
 expression       -> logical_or
 logical_or       -> logical_and ( ( '||' ) logical_and )*
@@ -113,8 +114,12 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.peek().Kind == token.PRINT {
 		return p.printStmt()
 	}
+	// TODO: this will change when assigning to "compound" lvalues
 	if p.peek().Kind == token.IDENT && p.peekNext().Kind == token.ASSIGN {
 		return p.assignStmt()
+	}
+	if p.peek().Kind == token.LBRACE {
+		return p.blockStmt()
 	}
 	return p.expressionStmt()
 }
@@ -146,6 +151,14 @@ func (p *Parser) assignStmt() (ast.Stmt, error) {
 	return &ast.AssignStmt{Name: ident, Value: expr}, nil
 }
 
+func (p *Parser) blockStmt() (ast.Stmt, error) {
+	list, err := p.block()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.BlockStmt{List: list}, nil
+}
+
 func (p *Parser) expressionStmt() (ast.Stmt, error) {
 	expr, err := p.expression()
 	if err != nil {
@@ -156,6 +169,26 @@ func (p *Parser) expressionStmt() (ast.Stmt, error) {
 	}
 	p.advance()
 	return &ast.ExprStmt{Expr: expr}, nil
+}
+
+func (p *Parser) block() ([]ast.Stmt, error) {
+	p.advance() // consume '{'
+	var list []ast.Stmt
+	for p.peek().Kind != token.RBRACE && !p.atEnd() {
+		decl, err := p.declaration()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, decl)
+	}
+	if p.peek().Kind != token.RBRACE {
+		return nil, fmt.Errorf("'}' expected after block")
+	}
+	if p.advance(); p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after '}'")
+	}
+	p.advance()
+	return list, nil
 }
 
 func (p *Parser) expression() (ast.Expr, error) {
