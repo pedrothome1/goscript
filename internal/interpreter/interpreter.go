@@ -22,7 +22,17 @@ func (r *Interpreter) Run(stmt ast.Stmt) error {
 	return stmt.Accept(r)
 }
 
-func (r *Interpreter) RunList(list []ast.Stmt, env *Environment) error {
+func (r *Interpreter) RunProgram(list []ast.Stmt) error {
+	for _, stmt := range list {
+		err := r.Run(stmt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Interpreter) RunBlock(list []ast.Stmt, env *Environment) error {
 	defer func(prev *Environment) {
 		r.env = prev
 	}(r.env)
@@ -261,7 +271,24 @@ func (r *Interpreter) VisitExprStmt(stmt *ast.ExprStmt) error {
 }
 
 func (r *Interpreter) VisitBlockStmt(stmt *ast.BlockStmt) error {
-	return r.RunList(stmt.List, newEnvironment(r.env))
+	return r.RunBlock(stmt.List, newEnvironment(r.env))
+}
+
+func (r *Interpreter) VisitIfStmt(stmt *ast.IfStmt) error {
+	condVal, err := r.Eval(stmt.Cond)
+	if err != nil {
+		return err
+	}
+	if condVal.Type != types.Bool {
+		return fmt.Errorf("the 'if' condition must be a boolean expression")
+	}
+	if condVal.Native.(bool) {
+		return r.Run(stmt.Body)
+	}
+	if stmt.Else != nil {
+		return r.Run(stmt.Else)
+	}
+	return nil
 }
 
 func (r *Interpreter) VisitAssignStmt(stmt *ast.AssignStmt) error {

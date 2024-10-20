@@ -47,11 +47,12 @@ program          -> statement* EOF
 declaration      -> varDecl | statement
 varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
 
-statement        -> exprStmt | printStmt | assignStmt | blockStmt
+statement        -> exprStmt | printStmt | assignStmt | blockStmt | ifStmt
 assignStmt       -> IDENT '=' expression ';'
 exprStmt         -> expression ';'
 printStmt        -> 'print' expression ';'
 blockStmt        -> '{' declaration* '}' ';'
+ifStmt           -> 'if' expression blockStmt ( 'else' ( blockStmt | ifStmt ) )?
 
 expression       -> logical_or
 logical_or       -> logical_and ( ( '||' ) logical_and )*
@@ -121,6 +122,9 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.peek().Kind == token.LBRACE {
 		return p.blockStmt()
 	}
+	if p.peek().Kind == token.IF {
+		return p.ifStmt()
+	}
 	return p.expressionStmt()
 }
 
@@ -159,6 +163,52 @@ func (p *Parser) blockStmt() (ast.Stmt, error) {
 	return &ast.BlockStmt{List: list}, nil
 }
 
+func (p *Parser) ifStmt() (ast.Stmt, error) {
+	p.advance()
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.LBRACE {
+		return nil, fmt.Errorf("'{' expected after if statement expression")
+	}
+	block, err := p.blockStmt()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.ELSE {
+		return &ast.IfStmt{
+			Cond: expr,
+			Body: block.(*ast.BlockStmt),
+			Else: nil,
+		}, nil
+	}
+	p.advance()
+	if p.peek().Kind == token.LBRACE {
+		elseStmt, err := p.blockStmt()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.IfStmt{
+			Cond: expr,
+			Body: block.(*ast.BlockStmt),
+			Else: elseStmt,
+		}, nil
+	}
+	if p.peek().Kind == token.IF {
+		elseStmt, err := p.ifStmt()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.IfStmt{
+			Cond: expr,
+			Body: block.(*ast.BlockStmt),
+			Else: elseStmt,
+		}, nil
+	}
+	return nil, fmt.Errorf("unexpected token %q after 'else'", p.peek().Lexeme)
+}
+
 func (p *Parser) expressionStmt() (ast.Stmt, error) {
 	expr, err := p.expression()
 	if err != nil {
@@ -184,10 +234,9 @@ func (p *Parser) block() ([]ast.Stmt, error) {
 	if p.peek().Kind != token.RBRACE {
 		return nil, fmt.Errorf("'}' expected after block")
 	}
-	if p.advance(); p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after '}'")
+	if p.advance(); p.peek().Kind == token.SEMICOLON {
+		p.advance()
 	}
-	p.advance()
 	return list, nil
 }
 
