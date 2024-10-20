@@ -47,12 +47,13 @@ program          -> statement* EOF
 declaration      -> varDecl | statement
 varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
 
-statement        -> exprStmt | printStmt | assignStmt | blockStmt | ifStmt
+statement        -> exprStmt | printStmt | assignStmt | blockStmt | ifStmt | forStmt
 assignStmt       -> IDENT '=' expression ';'
 exprStmt         -> expression ';'
 printStmt        -> 'print' expression ';'
 blockStmt        -> '{' declaration* '}' ';'
 ifStmt           -> 'if' expression blockStmt ( 'else' ( blockStmt | ifStmt ) )?
+forStmt          -> 'for' expression blockStmt
 
 expression       -> logical_or
 logical_or       -> logical_and ( ( '||' ) logical_and )*
@@ -125,6 +126,9 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.peek().Kind == token.IF {
 		return p.ifStmt()
 	}
+	if p.peek().Kind == token.FOR {
+		return p.forStmt()
+	}
 	return p.expressionStmt()
 }
 
@@ -163,6 +167,7 @@ func (p *Parser) blockStmt() (ast.Stmt, error) {
 	return &ast.BlockStmt{List: list}, nil
 }
 
+// TODO: support simple initialization statement
 func (p *Parser) ifStmt() (ast.Stmt, error) {
 	p.advance()
 	expr, err := p.expression()
@@ -207,6 +212,25 @@ func (p *Parser) ifStmt() (ast.Stmt, error) {
 		}, nil
 	}
 	return nil, fmt.Errorf("unexpected token %q after 'else'", p.peek().Lexeme)
+}
+
+func (p *Parser) forStmt() (ast.Stmt, error) {
+	p.advance() // consume 'for'
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.LBRACE {
+		return nil, fmt.Errorf("'{' expected for 'for' loop body")
+	}
+	body, err := p.blockStmt()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.ForStmt{
+		Cond: expr,
+		Body: body.(*ast.BlockStmt),
+	}, nil
 }
 
 func (p *Parser) expressionStmt() (ast.Stmt, error) {

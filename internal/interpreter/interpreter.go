@@ -291,6 +291,26 @@ func (r *Interpreter) VisitIfStmt(stmt *ast.IfStmt) error {
 	return nil
 }
 
+func (r *Interpreter) VisitForStmt(stmt *ast.ForStmt) error {
+	for {
+		condVal, err := r.Eval(stmt.Cond)
+		if err != nil {
+			return err
+		}
+		if condVal.Type != types.Bool {
+			return fmt.Errorf("the 'for' condition must be a boolean expression")
+		}
+		if !condVal.Native.(bool) {
+			break
+		}
+		err = r.Run(stmt.Body)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *Interpreter) VisitAssignStmt(stmt *ast.AssignStmt) error {
 	v, err := r.Eval(stmt.Value)
 	if err != nil {
