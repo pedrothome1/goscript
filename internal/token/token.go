@@ -44,6 +44,7 @@ const (
 	NOT // !
 
 	ASSIGN // =
+	DEFINE // :=
 
 	LPAREN
 	RPAREN
@@ -123,6 +124,7 @@ var kinds = map[Kind]string{
 	GEQ:         "GEQ",
 	NOT:         "NOT",
 	ASSIGN:      "ASSIGN",
+	DEFINE:      "DEFINE",
 	LPAREN:      "LPAREN",
 	RPAREN:      "RPAREN",
 	LBRACK:      "LBRACK",

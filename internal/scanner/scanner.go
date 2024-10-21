@@ -66,7 +66,12 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 		case ';':
 			s.addToken(token.SEMICOLON, nil)
 		case ':':
-			s.addToken(token.COLON, nil)
+			if s.peek() == '=' {
+				s.addToken(token.DEFINE, nil)
+				s.advance()
+			} else {
+				s.addToken(token.COLON, nil)
+			}
 		case ',':
 			s.addToken(token.COMMA, nil)
 		case '.':

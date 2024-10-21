@@ -47,14 +47,16 @@ program          -> statement* EOF
 declaration      -> varDecl | statement
 varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
 
-statement        -> exprStmt | printStmt | assignStmt | blockStmt | ifStmt | forStmt | incDecStmt
+statement        -> simpleStmt | printStmt | blockStmt | ifStmt | forStmt
+simpleStmt       -> exprStmt | incDecStmt | assignStmt | shortVarDecl
+ifStmt           -> 'if' expression blockStmt ( 'else' ( blockStmt | ifStmt ) )?
+forStmt          -> 'for' expression blockStmt
 assignStmt       -> IDENT '=' expression ';'
 exprStmt         -> expression ';'
 printStmt        -> 'print' expression ';'
 blockStmt        -> '{' declaration* '}' ';'
-ifStmt           -> 'if' expression blockStmt ( 'else' ( blockStmt | ifStmt ) )?
-forStmt          -> 'for' expression blockStmt
-incDecStmt       -> IDENT ( '++' | '--' )
+incDecStmt       -> IDENT ( '++' | '--' ) ';'
+shortVarDecl     -> IDENT ':=' expression ';'
 
 expression       -> logical_or
 logical_or       -> logical_and ( ( '||' ) logical_and )*
@@ -81,14 +83,14 @@ func (p *Parser) Parse() ([]ast.Stmt, error) {
 
 func (p *Parser) declaration() (ast.Stmt, error) {
 	if p.peek().Kind == token.VAR {
-		return p.varDeclaration()
+		return p.varDecl()
 	}
 	return p.statement()
 }
 
 // For now, only parsing declarations of the form `var name = "expr"` without type
 // TODO: implement according to the syntax grammar
-func (p *Parser) varDeclaration() (ast.Stmt, error) {
+func (p *Parser) varDecl() (ast.Stmt, error) {
 	p.advance()
 	if p.peek().Kind != token.IDENT {
 		return nil, fmt.Errorf("variable name expected")
@@ -117,15 +119,6 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.peek().Kind == token.PRINT {
 		return p.printStmt()
 	}
-	// TODO: this will change when assigning to "compound" lvalues
-	if p.peek().Kind == token.IDENT {
-		if p.peekNext().Kind == token.ASSIGN {
-			return p.assignStmt()
-		}
-		if p.peekNext().Kind == token.INC || p.peekNext().Kind == token.DEC {
-			return p.incDecStmt()
-		}
-	}
 	if p.peek().Kind == token.LBRACE {
 		return p.blockStmt()
 	}
@@ -134,6 +127,22 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	}
 	if p.peek().Kind == token.FOR {
 		return p.forStmt()
+	}
+	return p.simpleStmt()
+}
+
+func (p *Parser) simpleStmt() (ast.Stmt, error) {
+	// TODO: this will change when assigning to "compound" lvalues
+	if p.peek().Kind == token.IDENT {
+		if p.peekNext().Kind == token.ASSIGN {
+			return p.assignStmt()
+		}
+		if p.peekNext().Kind == token.DEFINE {
+			return p.shortVarDecl()
+		}
+		if p.peekNext().Kind == token.INC || p.peekNext().Kind == token.DEC {
+			return p.incDecStmt()
+		}
 	}
 	return p.expressionStmt()
 }
@@ -163,6 +172,24 @@ func (p *Parser) assignStmt() (ast.Stmt, error) {
 	}
 	p.advance()
 	return &ast.AssignStmt{Name: ident, Value: expr}, nil
+}
+
+func (p *Parser) shortVarDecl() (ast.Stmt, error) {
+	ident := p.advance()
+	p.advance() // consume ':='
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after short variable declaration")
+	}
+	p.advance()
+	return &ast.VarDecl{
+		Name:  ident,
+		Type:  nil,
+		Value: expr,
+	}, nil
 }
 
 func (p *Parser) blockStmt() (ast.Stmt, error) {
