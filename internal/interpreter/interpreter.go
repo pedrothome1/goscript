@@ -311,6 +311,21 @@ func (r *Interpreter) VisitForStmt(stmt *ast.ForStmt) error {
 	return nil
 }
 
+func (r *Interpreter) VisitIncDecStmt(stmt *ast.IncDecStmt) error {
+	id, ok := stmt.Expr.(*ast.Ident)
+	if !ok {
+		return fmt.Errorf("%q can only be used on identifiers", stmt.Tok.Lexeme)
+	}
+	val, err := r.Eval(id)
+	if err != nil {
+		return err
+	}
+	if stmt.Tok.Kind == token.INC {
+		return val.Inc()
+	}
+	return val.Dec()
+}
+
 func (r *Interpreter) VisitAssignStmt(stmt *ast.AssignStmt) error {
 	v, err := r.Eval(stmt.Value)
 	if err != nil {

@@ -47,13 +47,14 @@ program          -> statement* EOF
 declaration      -> varDecl | statement
 varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
 
-statement        -> exprStmt | printStmt | assignStmt | blockStmt | ifStmt | forStmt
+statement        -> exprStmt | printStmt | assignStmt | blockStmt | ifStmt | forStmt | incDecStmt
 assignStmt       -> IDENT '=' expression ';'
 exprStmt         -> expression ';'
 printStmt        -> 'print' expression ';'
 blockStmt        -> '{' declaration* '}' ';'
 ifStmt           -> 'if' expression blockStmt ( 'else' ( blockStmt | ifStmt ) )?
 forStmt          -> 'for' expression blockStmt
+incDecStmt       -> IDENT ( '++' | '--' )
 
 expression       -> logical_or
 logical_or       -> logical_and ( ( '||' ) logical_and )*
@@ -117,8 +118,13 @@ func (p *Parser) statement() (ast.Stmt, error) {
 		return p.printStmt()
 	}
 	// TODO: this will change when assigning to "compound" lvalues
-	if p.peek().Kind == token.IDENT && p.peekNext().Kind == token.ASSIGN {
-		return p.assignStmt()
+	if p.peek().Kind == token.IDENT {
+		if p.peekNext().Kind == token.ASSIGN {
+			return p.assignStmt()
+		}
+		if p.peekNext().Kind == token.INC || p.peekNext().Kind == token.DEC {
+			return p.incDecStmt()
+		}
 	}
 	if p.peek().Kind == token.LBRACE {
 		return p.blockStmt()
@@ -230,6 +236,22 @@ func (p *Parser) forStmt() (ast.Stmt, error) {
 	return &ast.ForStmt{
 		Cond: expr,
 		Body: body.(*ast.BlockStmt),
+	}, nil
+}
+
+func (p *Parser) incDecStmt() (ast.Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	tok := p.advance()
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after %q statement", tok.Lexeme)
+	}
+	p.advance()
+	return &ast.IncDecStmt{
+		Expr: expr,
+		Tok:  tok,
 	}, nil
 }
 
@@ -419,7 +441,7 @@ func (p *Parser) primary() (ast.Expr, error) {
 		p.advance()
 		return &ast.ParenExpr{X: expr}, nil
 	}
-	return nil, fmt.Errorf("parse error")
+	return nil, fmt.Errorf("invalid primary expression")
 }
 
 func (p *Parser) advance() token.Token {

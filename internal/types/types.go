@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type Type int
 
 const (
@@ -43,3 +45,30 @@ func NewValue(native any) *Value {
 	}
 }
 
+func (v *Value) Inc() error {
+	switch val := v.Native.(type) {
+	case int:
+		val++
+		v.Native = val
+	case float64:
+		val++
+		v.Native = val
+	default:
+		return fmt.Errorf("incrementing non-numeric type")
+	}
+	return nil
+}
+
+func (v *Value) Dec() error {
+	switch val := v.Native.(type) {
+	case int:
+		val--
+		v.Native = val
+	case float64:
+		val--
+		v.Native = val
+	default:
+		return fmt.Errorf("decrementing non-numeric type")
+	}
+	return nil
+}
