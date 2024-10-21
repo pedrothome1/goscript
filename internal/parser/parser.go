@@ -47,7 +47,7 @@ program          -> statement* EOF
 declaration      -> varDecl | statement
 varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
 
-statement        -> simpleStmt | printStmt | blockStmt | ifStmt | forStmt
+statement        -> simpleStmt | printStmt | blockStmt | ifStmt | forStmt | breakStmt | continueStmt
 simpleStmt       -> exprStmt | incDecStmt | assignStmt | shortVarDecl
 ifStmt           -> 'if' expression blockStmt ( 'else' ( blockStmt | ifStmt ) )?
 forStmt          -> 'for' expression blockStmt
@@ -56,6 +56,8 @@ exprStmt         -> expression ';'
 printStmt        -> 'print' expression ';'
 blockStmt        -> '{' declaration* '}' ';'
 incDecStmt       -> IDENT ( '++' | '--' ) ';'
+breakStmt        -> 'break' IDENT? ';'
+continueStmt     -> 'continue' IDENT? ';'
 shortVarDecl     -> IDENT ':=' expression ';'
 
 expression       -> logical_or
@@ -127,6 +129,12 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	}
 	if p.peek().Kind == token.FOR {
 		return p.forStmt()
+	}
+	if p.peek().Kind == token.BREAK {
+		return p.breakStmt()
+	}
+	if p.peek().Kind == token.CONTINUE {
+		return p.continueStmt()
 	}
 	return p.simpleStmt()
 }
@@ -263,6 +271,33 @@ func (p *Parser) forStmt() (ast.Stmt, error) {
 	return &ast.ForStmt{
 		Cond: expr,
 		Body: body.(*ast.BlockStmt),
+	}, nil
+}
+
+// TODO: unify break and continue into one method?
+// TODO: implement labels
+func (p *Parser) breakStmt() (ast.Stmt, error) {
+	branchTok := p.advance()
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after %q statement", branchTok.Lexeme)
+	}
+	p.advance()
+	return &ast.BranchStmt{
+		Tok:   branchTok,
+		Label: nil,
+	}, nil
+}
+
+// TODO: implement labels
+func (p *Parser) continueStmt() (ast.Stmt, error) {
+	branchTok := p.advance()
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after %q statement", branchTok.Lexeme)
+	}
+	p.advance()
+	return &ast.BranchStmt{
+		Tok:   branchTok,
+		Label: nil,
 	}, nil
 }
 

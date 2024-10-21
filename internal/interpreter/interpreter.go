@@ -1,6 +1,7 @@
 package interpreter
 
 import (
+	"errors"
 	"fmt"
 	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/token"
@@ -304,11 +305,28 @@ func (r *Interpreter) VisitForStmt(stmt *ast.ForStmt) error {
 			break
 		}
 		err = r.Run(stmt.Body)
+		if errors.Is(err, errBreak) {
+			break
+		}
+		if errors.Is(err, errContinue) {
+			continue
+		}
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (r *Interpreter) VisitBranchStmt(stmt *ast.BranchStmt) error {
+	switch stmt.Tok.Kind {
+	case token.BREAK:
+		return errBreak
+	case token.CONTINUE:
+		return errContinue
+	default:
+		return fmt.Errorf("%q branch statement not implemented", stmt.Tok.Lexeme)
+	}
 }
 
 func (r *Interpreter) VisitIncDecStmt(stmt *ast.IncDecStmt) error {

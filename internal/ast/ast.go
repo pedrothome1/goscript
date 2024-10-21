@@ -20,6 +20,7 @@ type StmtVisitor interface {
 	VisitBlockStmt(stmt *BlockStmt) error
 	VisitIfStmt(stmt *IfStmt) error
 	VisitForStmt(stmt *ForStmt) error
+	VisitBranchStmt(stmt *BranchStmt) error
 	VisitIncDecStmt(stmt *IncDecStmt) error
 	VisitVarDecl(stmt *VarDecl) error
 }
@@ -93,6 +94,12 @@ type ForStmt struct {
 	Body *BlockStmt
 }
 
+// break, continue
+type BranchStmt struct {
+	Tok   token.Token
+	Label *Ident
+}
+
 type IncDecStmt struct {
 	Expr Expr
 	Tok  token.Token
@@ -119,6 +126,8 @@ func (s *IfStmt) Accept(v StmtVisitor) error     { return v.VisitIfStmt(s) }
 func (s *IfStmt) stmtNode()                      {}
 func (s *ForStmt) Accept(v StmtVisitor) error    { return v.VisitForStmt(s) }
 func (s *ForStmt) stmtNode()                     {}
+func (s *BranchStmt) Accept(v StmtVisitor) error { return v.VisitBranchStmt(s) }
+func (s *BranchStmt) stmtNode()                  {}
 func (s *IncDecStmt) Accept(v StmtVisitor) error { return v.VisitIncDecStmt(s) }
 func (s *IncDecStmt) stmtNode()                  {}
 func (s *AssignStmt) Accept(v StmtVisitor) error { return v.VisitAssignStmt(s) }
