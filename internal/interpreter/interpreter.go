@@ -91,6 +91,7 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error
 			return types.NewBasicValue(leftInt / rightInt), nil
 		case token.REM:
 			return types.NewBasicValue(leftInt % rightInt), nil
+
 		case token.AND:
 			return types.NewBasicValue(leftInt & rightInt), nil
 		case token.OR:

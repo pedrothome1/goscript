@@ -1,9 +1,3 @@
-func getName() string {
-    return "Pedro"
-}
+print name
 
-func printHello(name string) {
-    print "Hello, " + name
-}
-
-printHello(getName())
+name := "Pedro"

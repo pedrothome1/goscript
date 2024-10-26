@@ -1,21 +1,48 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Type int
 
 const (
 	Invalid Type = iota
 
+	TypeT
+
 	Bool
 	Int
 	Float
 	String
-
 	UntypedNil
 
 	Func
 )
+
+func (t Type) IsBasic() bool {
+	switch t {
+	case Bool, Int, Float, String:
+		return true
+	}
+	return false
+}
+
+func FromLexeme(lexeme string) Type {
+	tbl := map[string]Type{
+		"int":    Int,
+		"char":   Int,
+		"float":  Float,
+		"bool":   Bool,
+		"string": String,
+	}
+
+	if t, ok := tbl[lexeme]; ok {
+		return t
+	}
+
+	return Invalid
+}
 
 type Value struct {
 	Native any
