@@ -2,9 +2,12 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/parser"
 	"github.com/pedrothome1/goscript/internal/printer"
+	"github.com/pedrothome1/goscript/internal/scanner"
 	"log"
 	"os"
 )
@@ -24,15 +27,32 @@ func main() {
 			break
 		}
 		p := &parser.Parser{}
-		p.Init([]byte(text))
+		err := p.Init([]byte(text))
+		if err != nil {
+			var scanErr *scanner.ScanError
+			if errors.As(err, &scanErr) {
+				log.Print(scanErr.Details())
+			} else {
+				log.Printf("scan error: %s\n", err.Error())
+			}
+			continue
+		}
 
-		expr, err := p.Parse()
+		stmts, err := p.Parse()
 		if err != nil {
 			log.Println(err.Error())
 			continue
 		}
 
-		pr := &printer.Printer{}
-		fmt.Print(pr.String(expr))
+		if len(stmts) > 0 {
+			first := stmts[0]
+			if es, ok := first.(*ast.ExprStmt); ok {
+				pr := &printer.Printer{}
+				fmt.Print(pr.Stringify(es.Expr))
+				continue
+			}
+		}
+
+		log.Println("couldn't print the expression")
 	}
 }

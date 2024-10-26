@@ -9,81 +9,174 @@ import (
 	"strings"
 )
 
-const indent = 4
+const (
+	indentSize = 4
+)
 
 type Printer struct {
-	level int
-	comma string
-	sb    strings.Builder
+	level      int
+	comma      string
+	prevCommas []string
+	sb         strings.Builder
 }
 
-func (p *Printer) String(expr ast.Expr) string {
+func (p *Printer) Stringify(expr ast.Expr) string {
 	expr.Accept(p)
 	defer p.sb.Reset()
 	return p.sb.String()
+}
+
+func (p *Printer) VisitIdent(expr *ast.Ident) (*types.Value, error) {
+	p.oneLinePrintf("Indent(%q)", expr.Name.Lexeme)
+
+	return nil, nil
 }
 
 func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
 	switch lit.Value.Kind {
 	case token.FLOAT:
 		val := strconv.FormatFloat(lit.Value.Lit.(float64), 'f', -1, 64)
-		fmt.Fprintf(&p.sb, "%sBasicLit(float(%s))%s\n", p.indent(), val, p.comma)
+		p.oneLinePrintf("BasicLit(float(%s))", val)
 	case token.INT:
-		fmt.Fprintf(&p.sb, "%sBasicLit(int(%d))%s\n", p.indent(), lit.Value.Lit, p.comma)
+		p.oneLinePrintf("BasicLit(int(%d))", lit.Value.Lit)
 	case token.STRING:
-		fmt.Fprintf(&p.sb, "%sBasicLit(string(%q))%s\n", p.indent(), lit.Value.Lit, p.comma)
+		p.oneLinePrintf("BasicLit(string(%q))", lit.Value.Lit)
 	case token.BOOL:
-		fmt.Fprintf(&p.sb, "%sBasicLit(bool(%v))%s\n", p.indent(), lit.Value.Lit, p.comma)
+		p.oneLinePrintf("BasicLit(bool(%v))", lit.Value.Lit)
 	case token.NIL:
-		fmt.Fprintf(&p.sb, "%sBasicLit(%v)%s\n", p.indent(), lit.Value.Lit, p.comma)
+		p.oneLinePrintf("BasicLit(%v)", lit.Value.Lit)
 	}
 
 	return nil, nil
 }
 
 func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
-	fmt.Fprintf(&p.sb, "%sBinaryExpr(\n", p.indent())
-	p.level += indent
+	p.startElement("BinaryExpr")
 
-	parentComma := p.comma
-
-	p.comma = ","
+	p.inMiddleElement()
 	expr.Left.Accept(p)
-	fmt.Fprintf(&p.sb, "%s%s%s\n", p.indent(), expr.Op.Kind.String(), p.comma)
-	p.comma = ""
-	expr.Right.Accept(p)
-	p.comma = parentComma
 
-	p.level -= indent
-	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
+	p.inMiddleElement()
+	p.printf("%s%s%s\n", p.indentation(), expr.Op.Kind.String(), p.comma)
+
+	p.inLastElement()
+	expr.Right.Accept(p)
+
+	p.endElement()
+
 	return nil, nil
 }
 
 func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
-	fmt.Fprintf(&p.sb, "%sUnaryExpr(\n", p.indent())
-	p.level += indent
+	p.startElement("UnaryExpr")
 
-	parentComma := p.comma
-	p.comma = ","
-	fmt.Fprintf(&p.sb, "%s%s%s\n", p.indent(), expr.Op.Kind.String(), p.comma)
-	p.comma = ""
+	p.inMiddleElement()
+	p.printf("%s%s%s\n", p.indentation(), expr.Op.Kind.String(), p.comma)
+
+	p.inLastElement()
 	expr.Right.Accept(p)
-	p.comma = parentComma
-	p.level -= indent
-	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
+
+	p.endElement()
+
+	return nil, nil
+}
+
+func (p *Printer) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
+	if len(expr.Args) == 0 {
+		p.oneLinePrintf("CallExpr()")
+		return nil, nil
+	}
+
+	p.startElement("CallExpr")
+
+	for i := 0; i < len(expr.Args); i++ {
+		if i == len(expr.Args)-1 {
+			p.inLastElement()
+		} else {
+			p.inMiddleElement()
+		}
+
+		expr.Args[i].Accept(p)
+	}
+
+	p.endElement()
 
 	return nil, nil
 }
 
 func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (*types.Value, error) {
-	fmt.Fprintf(&p.sb, "%sParenExpr(\n", p.indent())
-	p.level += indent
+	p.startElement("ParenExpr")
+
+	p.inLastElement()
 	expr.X.Accept(p)
-	p.level -= indent
-	fmt.Fprintf(&p.sb, "%s)%s\n", p.indent(), p.comma)
+
+	p.endElement()
+
 	return nil, nil
 }
 
-func (p *Printer) indent() string {
+// -- helpers --
+func (p *Printer) startElement(name string) error {
+	err := p.printf("%s%s(\n", p.indentation(), name)
+	if err != nil {
+		return err
+	}
+
+	p.indent()
+
+	return nil
+}
+
+func (p *Printer) endElement() error {
+	p.unindent()
+	return p.printf("%s)%s\n", p.indentation(), p.comma)
+}
+
+func (p *Printer) oneLinePrintf(format string, args ...any) (err error) {
+	err = p.print(p.indentation())
+	if err != nil {
+		return err
+	}
+
+	err = p.printf(format, args...)
+	if err != nil {
+		return err
+	}
+
+	return p.printf("%s\n", p.comma)
+}
+
+func (p *Printer) printf(format string, args ...any) error {
+	_, err := fmt.Fprintf(&p.sb, format, args...)
+	return err
+}
+
+func (p *Printer) print(args ...any) error {
+	_, err := fmt.Fprint(&p.sb, args...)
+	return err
+}
+
+func (p *Printer) indentation() string {
 	return strings.Repeat(" ", p.level)
+}
+
+func (p *Printer) indent() {
+	p.level += indentSize
+	p.prevCommas = append(p.prevCommas, p.comma)
+}
+
+func (p *Printer) unindent() {
+	p.level -= indentSize
+
+	p.comma = p.prevCommas[len(p.prevCommas)-1]
+	// This will panic if p.prevCommas is empty
+	p.prevCommas = p.prevCommas[:len(p.prevCommas)-1]
+}
+
+func (p *Printer) inLastElement() {
+	p.comma = ""
+}
+
+func (p *Printer) inMiddleElement() {
+	p.comma = ","
 }

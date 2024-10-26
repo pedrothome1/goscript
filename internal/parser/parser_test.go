@@ -1,10 +1,8 @@
 package parser_test
 
 import (
-	"fmt"
 	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/parser"
-	"github.com/pedrothome1/goscript/internal/printer"
 	"github.com/pedrothome1/goscript/internal/token"
 	"reflect"
 	"testing"
@@ -113,10 +111,6 @@ func TestParser_Parse(t *testing.T) {
 
 			if !reflect.DeepEqual(expr, test.Want) {
 				t.Errorf("want != got")
-			} else {
-				pr := &printer.Printer{}
-				fmt.Println(string(test.Src))
-				fmt.Print(pr.String(expr))
 			}
 		})
 	}
