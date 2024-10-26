@@ -151,9 +151,9 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 				return s.toks, err
 			}
 		case '\n':
+			s.addAutoSemi()
 			s.line++
 			s.col = 0
-			s.addAutoSemi()
 		case ' ', '\r', '\t':
 			break
 		default:
@@ -172,12 +172,12 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 		}
 	}
 	s.addAutoSemi()
-	s.toks = append(s.toks, token.Token{token.EOF, nil, "", s.pos})
+	s.toks = append(s.toks, token.Token{token.EOF, nil, "", s.line, s.col})
 	return s.toks, nil
 }
 
 func (s *Scanner) addToken(kind token.Kind, lit any) {
-	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos], s.start})
+	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos], s.line, s.col})
 }
 
 func (s *Scanner) addNumber() error {
@@ -333,7 +333,7 @@ func (s *Scanner) addAutoSemi() {
 	switch s.toks[len(s.toks)-1].Kind {
 	case token.IDENT, token.NIL, token.INT, token.BOOL, token.FLOAT, token.CHAR, token.STRING, token.BREAK,
 		token.CONTINUE, token.FALLTHROUGH, token.RETURN, token.INC, token.DEC, token.RPAREN, token.RBRACK, token.RBRACE:
-		s.toks = append(s.toks, token.Token{token.SEMICOLON, nil, ";", -1})
+		s.toks = append(s.toks, token.Token{token.SEMICOLON, nil, ";", s.line, s.col + 1})
 	}
 }
 

@@ -13,6 +13,8 @@ const (
 	String
 
 	UntypedNil
+
+	Func
 )
 
 type Value struct {
@@ -20,7 +22,7 @@ type Value struct {
 	Type   Type
 }
 
-func NewValue(native any) *Value {
+func NewBasicValue(native any) *Value {
 	var t Type
 	switch native.(type) {
 	case bool:

@@ -20,21 +20,21 @@ func TestParser_Parse(t *testing.T) {
 			Name: "Simple ADD",
 			Src:  []byte("1 + 2"),
 			Want: &ast.BinaryExpr{
-				&ast.BasicLit{token.Token{token.INT, 1, "1", 0}},
-				token.Token{token.ADD, nil, "+", 0},
-				&ast.BasicLit{token.Token{token.INT, 2, "2", 0}},
+				&ast.BasicLit{token.Token{token.INT, 1, "1", -1, -1}},
+				token.Token{token.ADD, nil, "+", -1, -1},
+				&ast.BasicLit{token.Token{token.INT, 2, "2", -1, -1}},
 			},
 		},
 		{
 			Name: "Precende ADD, MUL",
 			Src:  []byte("3 + 4 * 5"),
 			Want: &ast.BinaryExpr{
-				&ast.BasicLit{token.Token{token.INT, 3, "3", 0}},
-				token.Token{token.ADD, nil, "+", 0},
+				&ast.BasicLit{token.Token{token.INT, 3, "3", -1, -1}},
+				token.Token{token.ADD, nil, "+", -1, -1},
 				&ast.BinaryExpr{
-					&ast.BasicLit{token.Token{token.INT, 4, "4", 0}},
-					token.Token{token.MUL, nil, "*", 0},
-					&ast.BasicLit{token.Token{token.INT, 5, "5", 0}},
+					&ast.BasicLit{token.Token{token.INT, 4, "4", -1, -1}},
+					token.Token{token.MUL, nil, "*", -1, -1},
+					&ast.BasicLit{token.Token{token.INT, 5, "5", -1, -1}},
 				},
 			},
 		},
@@ -44,13 +44,13 @@ func TestParser_Parse(t *testing.T) {
 			Want: &ast.BinaryExpr{
 				&ast.ParenExpr{
 					&ast.BinaryExpr{
-						&ast.BasicLit{token.Token{token.INT, 3, "3", 0}},
-						token.Token{token.ADD, nil, "+", 0},
-						&ast.BasicLit{token.Token{token.INT, 4, "4", 0}},
+						&ast.BasicLit{token.Token{token.INT, 3, "3", -1, -1}},
+						token.Token{token.ADD, nil, "+", -1, -1},
+						&ast.BasicLit{token.Token{token.INT, 4, "4", -1, -1}},
 					},
 				},
-				token.Token{token.MUL, nil, "*", 0},
-				&ast.BasicLit{token.Token{token.INT, 5, "5", 0}},
+				token.Token{token.MUL, nil, "*", -1, -1},
+				&ast.BasicLit{token.Token{token.INT, 5, "5", -1, -1}},
 			},
 		},
 		{
@@ -59,13 +59,13 @@ func TestParser_Parse(t *testing.T) {
 			Want: &ast.BinaryExpr{
 				&ast.ParenExpr{
 					&ast.BinaryExpr{
-						&ast.BasicLit{token.Token{token.FLOAT, 3.2, "3.2", 0}},
-						token.Token{token.ADD, nil, "+", 0},
-						&ast.BasicLit{token.Token{token.FLOAT, 4.1, "4.1", 0}},
+						&ast.BasicLit{token.Token{token.FLOAT, 3.2, "3.2", -1, -1}},
+						token.Token{token.ADD, nil, "+", -1, -1},
+						&ast.BasicLit{token.Token{token.FLOAT, 4.1, "4.1", -1, -1}},
 					},
 				},
-				token.Token{token.MUL, nil, "*", 0},
-				&ast.BasicLit{token.Token{token.FLOAT, 5.659, "5.659", 0}},
+				token.Token{token.MUL, nil, "*", -1, -1},
+				&ast.BasicLit{token.Token{token.FLOAT, 5.659, "5.659", -1, -1}},
 			},
 		},
 		{
@@ -74,13 +74,13 @@ func TestParser_Parse(t *testing.T) {
 			Want: &ast.BinaryExpr{
 				&ast.ParenExpr{
 					&ast.BinaryExpr{
-						&ast.BasicLit{token.Token{token.FLOAT, 3.2, "3.2", 0}},
-						token.Token{token.ADD, nil, "+", 0},
-						&ast.BasicLit{token.Token{token.INT, 4, "4", 0}},
+						&ast.BasicLit{token.Token{token.FLOAT, 3.2, "3.2", -1, -1}},
+						token.Token{token.ADD, nil, "+", -1, -1},
+						&ast.BasicLit{token.Token{token.INT, 4, "4", -1, -1}},
 					},
 				},
-				token.Token{token.MUL, nil, "*", 0},
-				&ast.BasicLit{token.Token{token.FLOAT, 5.659, "5.659", 0}},
+				token.Token{token.MUL, nil, "*", -1, -1},
+				&ast.BasicLit{token.Token{token.FLOAT, 5.659, "5.659", -1, -1}},
 			},
 		},
 		{
@@ -89,15 +89,15 @@ func TestParser_Parse(t *testing.T) {
 			Want: &ast.BinaryExpr{
 				&ast.BinaryExpr{
 					&ast.BinaryExpr{
-						&ast.BasicLit{token.Token{token.INT, 10, "10", 0}},
-						token.Token{token.ADD, nil, "+", 0},
-						&ast.BasicLit{token.Token{token.INT, 11, "11", 0}},
+						&ast.BasicLit{token.Token{token.INT, 10, "10", -1, -1}},
+						token.Token{token.ADD, nil, "+", -1, -1},
+						&ast.BasicLit{token.Token{token.INT, 11, "11", -1, -1}},
 					},
-					token.Token{token.ADD, nil, "+", 0},
-					&ast.BasicLit{token.Token{token.INT, 12, "12", 0}},
+					token.Token{token.ADD, nil, "+", -1, -1},
+					&ast.BasicLit{token.Token{token.INT, 12, "12", -1, -1}},
 				},
-				token.Token{token.ADD, nil, "+", 0},
-				&ast.BasicLit{token.Token{token.INT, 13, "13", 0}},
+				token.Token{token.ADD, nil, "+", -1, -1},
+				&ast.BasicLit{token.Token{token.INT, 13, "13", -1, -1}},
 			},
 		},
 	}

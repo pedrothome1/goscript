@@ -44,10 +44,11 @@ ESC_SEQ          -> '\a' | '\b' | '\f' | '\n' | '\r' | '\t' | '\v' | '\\' | '\''
 --- Syntax Grammar ---
 program          -> statement* EOF
 
-declaration      -> varDecl | statement
+declaration      -> varDecl | funcDecl | statement
 varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
+funcDecl         -> 'func' IDENT '(' parameters? ')' TYPE? blockStmt
 
-statement        -> simpleStmt | printStmt | blockStmt | ifStmt | forStmt | breakStmt | continueStmt
+statement        -> simpleStmt | printStmt | blockStmt | ifStmt | forStmt | breakStmt | continueStmt | returnStmt
 simpleStmt       -> exprStmt | incDecStmt | assignStmt | shortVarDecl
 ifStmt           -> 'if' expression blockStmt ( 'else' ( blockStmt | ifStmt ) )?
 forStmt          -> 'for' expression blockStmt
@@ -58,6 +59,7 @@ blockStmt        -> '{' declaration* '}' ';'
 incDecStmt       -> IDENT ( '++' | '--' ) ';'
 breakStmt        -> 'break' IDENT? ';'
 continueStmt     -> 'continue' IDENT? ';'
+returnStmt       -> 'return' expression? ';'
 shortVarDecl     -> IDENT ':=' expression ';'
 
 expression       -> logical_or
@@ -66,9 +68,21 @@ logical_and      -> comparison ( ( '&&' ) comparison )*
 comparison       -> term ( ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) term )?
 term             -> factor ( ( '+' | '-' | '|' | '^' ) factor )*
 factor           -> unary ( ( '*' | '/' | '&' | '&^' | '<<' | '>>' ) unary )*
-unary            -> ( '-' | '!' )? primary
-primary          -> QUALIFIED_IDENT | IDENT | FLOAT | INT | CHAR | STRING |
-                    'true' | 'false' | 'nil' | '(' expression ')'
+unary            -> ( '-' | '!' )? call
+call             -> primary ( '(' arguments? ')' )*
+primary          -> QUALIFIED_IDENT |
+					IDENT |
+					FLOAT |
+					INT |
+					CHAR |
+					STRING |
+                    'true' |
+					'false' |
+					'nil' |
+					'(' expression ')'
+
+arguments        -> expression ( ',' expression )*
+parameters       -> IDENT TYPE ( ',' IDENT TYPE )*
 */
 
 func (p *Parser) Parse() ([]ast.Stmt, error) {
@@ -86,6 +100,9 @@ func (p *Parser) Parse() ([]ast.Stmt, error) {
 func (p *Parser) declaration() (ast.Stmt, error) {
 	if p.peek().Kind == token.VAR {
 		return p.varDecl()
+	}
+	if p.peek().Kind == token.FUNC {
+		return p.funcDecl()
 	}
 	return p.statement()
 }
@@ -117,6 +134,62 @@ func (p *Parser) varDecl() (ast.Stmt, error) {
 	}, nil
 }
 
+func (p *Parser) funcDecl() (ast.Stmt, error) {
+	p.advance()
+	if p.peek().Kind != token.IDENT {
+		return nil, fmt.Errorf("function name expected")
+	}
+	name := p.advance()
+	if p.peek().Kind != token.LPAREN {
+		return nil, fmt.Errorf("'(' expected after function name")
+	}
+	p.advance()
+	var params []*ast.Field
+	for p.peek().Kind != token.RPAREN && !p.atEnd() {
+		// <ident> <type>
+		var f ast.Field
+		if p.peek().Kind != token.IDENT {
+			return nil, fmt.Errorf("expected parameter name")
+		}
+		f.Name = p.advance()
+		if p.peek().Kind != token.IDENT {
+			return nil, fmt.Errorf("expected parameter type")
+		}
+		f.Type = p.advance()
+		if p.peek().Kind == token.COMMA {
+			p.advance()
+		}
+		params = append(params, &f)
+		if len(params) > 255 {
+			return nil, fmt.Errorf("can't have more than 255 parameters")
+		}
+	}
+	if p.peek().Kind != token.RPAREN {
+		return nil, fmt.Errorf("')' expected at the end of parameter list")
+	}
+	p.advance()
+	var result *ast.Field
+	if p.peek().Kind == token.IDENT {
+		result = &ast.Field{
+			Name: token.Token{Line: -1},
+			Type: p.advance(),
+		}
+	}
+	if p.peek().Kind != token.LBRACE {
+		return nil, fmt.Errorf("'{' expected for the function declaration body")
+	}
+	blockStmt, err := p.blockStmt()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.FuncDecl{
+		Name:   name,
+		Params: params,
+		Result: result,
+		Body:   blockStmt.(*ast.BlockStmt).List,
+	}, nil
+}
+
 func (p *Parser) statement() (ast.Stmt, error) {
 	if p.peek().Kind == token.PRINT {
 		return p.printStmt()
@@ -135,6 +208,9 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	}
 	if p.peek().Kind == token.CONTINUE {
 		return p.continueStmt()
+	}
+	if p.peek().Kind == token.RETURN {
+		return p.returnStmt()
 	}
 	return p.simpleStmt()
 }
@@ -299,6 +375,23 @@ func (p *Parser) continueStmt() (ast.Stmt, error) {
 		Tok:   branchTok,
 		Label: nil,
 	}, nil
+}
+
+func (p *Parser) returnStmt() (ast.Stmt, error) {
+	p.advance() // consume 'return'
+	if p.peek().Kind == token.SEMICOLON {
+		p.advance()
+		return &ast.ReturnStmt{Result: nil}, nil
+	}
+	result, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.SEMICOLON {
+		return nil, fmt.Errorf("';' expected after 'return' statement")
+	}
+	p.advance()
+	return &ast.ReturnStmt{Result: result}, nil
 }
 
 func (p *Parser) incDecStmt() (ast.Stmt, error) {
@@ -467,7 +560,7 @@ func (p *Parser) factor() (ast.Expr, error) {
 func (p *Parser) unary() (ast.Expr, error) {
 	if p.peek().Kind == token.SUB || p.peek().Kind == token.NOT {
 		op := p.advance()
-		right, err := p.primary()
+		right, err := p.call()
 		if err != nil {
 			return nil, err
 		}
@@ -477,11 +570,46 @@ func (p *Parser) unary() (ast.Expr, error) {
 		}, nil
 	}
 
-	primary, err := p.primary()
+	primary, err := p.call()
 	if err != nil {
 		return nil, err
 	}
 	return primary, nil
+}
+
+func (p *Parser) call() (ast.Expr, error) {
+	callee, err := p.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.peek().Kind == token.LPAREN {
+		p.advance()
+		var args []ast.Expr
+		for p.peek().Kind != token.RPAREN && !p.atEnd() {
+			arg, err := p.expression()
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, arg)
+			if len(args) > 255 {
+				return nil, fmt.Errorf("can't have more than 255 arguments")
+			}
+			if p.peek().Kind == token.COMMA {
+				p.advance()
+			}
+		}
+		if p.peek().Kind != token.RPAREN {
+			return nil, fmt.Errorf("')' expected in call expression")
+		}
+		p.advance()
+		callee = &ast.CallExpr{
+			Callee: callee,
+			Args:   args,
+		}
+	}
+
+	return callee, nil
 }
 
 func (p *Parser) primary() (ast.Expr, error) {
@@ -503,7 +631,7 @@ func (p *Parser) primary() (ast.Expr, error) {
 		p.advance()
 		return &ast.ParenExpr{X: expr}, nil
 	}
-	return nil, fmt.Errorf("invalid primary expression")
+	return nil, fmt.Errorf("invalid primary expression at %d:%d", p.peek().Line, p.peek().Col)
 }
 
 func (p *Parser) advance() token.Token {
@@ -520,7 +648,7 @@ func (p *Parser) peek() token.Token {
 
 func (p *Parser) peekNext() token.Token {
 	if p.pos+1 >= len(p.toks) {
-		return token.Token{token.EOF, nil, "", -1}
+		return token.Token{token.EOF, nil, "", -1, -1}
 	}
 	return p.toks[p.pos+1]
 }

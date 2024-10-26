@@ -10,6 +10,7 @@ type ExprVisitor interface {
 	VisitBasicLit(lit *BasicLit) (*types.Value, error)
 	VisitBinaryExpr(expr *BinaryExpr) (*types.Value, error)
 	VisitUnaryExpr(expr *UnaryExpr) (*types.Value, error)
+	VisitCallExpr(expr *CallExpr) (*types.Value, error)
 	VisitParenExpr(expr *ParenExpr) (*types.Value, error)
 }
 
@@ -20,9 +21,11 @@ type StmtVisitor interface {
 	VisitBlockStmt(stmt *BlockStmt) error
 	VisitIfStmt(stmt *IfStmt) error
 	VisitForStmt(stmt *ForStmt) error
+	VisitReturnStmt(stmt *ReturnStmt) error
 	VisitBranchStmt(stmt *BranchStmt) error
 	VisitIncDecStmt(stmt *IncDecStmt) error
 	VisitVarDecl(stmt *VarDecl) error
+	VisitFuncDecl(stmt *FuncDecl) error
 }
 
 // --- expressions ---
@@ -50,6 +53,11 @@ type UnaryExpr struct {
 	Right Expr
 }
 
+type CallExpr struct {
+	Callee Expr
+	Args   []Expr
+}
+
 type ParenExpr struct {
 	X Expr
 }
@@ -62,6 +70,8 @@ func (e *BinaryExpr) Accept(v ExprVisitor) (*types.Value, error) { return v.Visi
 func (e *BinaryExpr) exprNode()                                  {}
 func (e *UnaryExpr) Accept(v ExprVisitor) (*types.Value, error)  { return v.VisitUnaryExpr(e) }
 func (e *UnaryExpr) exprNode()                                   {}
+func (e *CallExpr) Accept(v ExprVisitor) (*types.Value, error)   { return v.VisitCallExpr(e) }
+func (e *CallExpr) exprNode()                                    {}
 func (e *ParenExpr) Accept(v ExprVisitor) (*types.Value, error)  { return v.VisitParenExpr(e) }
 func (e *ParenExpr) exprNode()                                   {}
 
@@ -94,6 +104,10 @@ type ForStmt struct {
 	Body *BlockStmt
 }
 
+type ReturnStmt struct {
+	Result Expr
+}
+
 // break, continue
 type BranchStmt struct {
 	Tok   token.Token
@@ -116,6 +130,13 @@ type VarDecl struct {
 	Value Expr
 }
 
+type FuncDecl struct {
+	Name   token.Token
+	Params []*Field
+	Result *Field
+	Body   []Stmt
+}
+
 func (s *PrintStmt) Accept(v StmtVisitor) error  { return v.VisitPrintStmt(s) }
 func (s *PrintStmt) stmtNode()                   {}
 func (s *ExprStmt) Accept(v StmtVisitor) error   { return v.VisitExprStmt(s) }
@@ -126,6 +147,8 @@ func (s *IfStmt) Accept(v StmtVisitor) error     { return v.VisitIfStmt(s) }
 func (s *IfStmt) stmtNode()                      {}
 func (s *ForStmt) Accept(v StmtVisitor) error    { return v.VisitForStmt(s) }
 func (s *ForStmt) stmtNode()                     {}
+func (s *ReturnStmt) Accept(v StmtVisitor) error { return v.VisitReturnStmt(s) }
+func (s *ReturnStmt) stmtNode()                  {}
 func (s *BranchStmt) Accept(v StmtVisitor) error { return v.VisitBranchStmt(s) }
 func (s *BranchStmt) stmtNode()                  {}
 func (s *IncDecStmt) Accept(v StmtVisitor) error { return v.VisitIncDecStmt(s) }
@@ -134,3 +157,10 @@ func (s *AssignStmt) Accept(v StmtVisitor) error { return v.VisitAssignStmt(s) }
 func (s *AssignStmt) stmtNode()                  {}
 func (s *VarDecl) Accept(v StmtVisitor) error    { return v.VisitVarDecl(s) }
 func (s *VarDecl) stmtNode()                     {}
+func (s *FuncDecl) Accept(v StmtVisitor) error   { return v.VisitFuncDecl(s) }
+func (s *FuncDecl) stmtNode()                    {}
+
+type Field struct {
+	Name token.Token
+	Type token.Token
+}

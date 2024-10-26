@@ -12,11 +12,13 @@ import (
 )
 
 type Interpreter struct {
-	env *Environment
+	globals *Environment
+	env     *Environment
 }
 
 func New() *Interpreter {
-	return &Interpreter{env: newEnvironment(nil)}
+	globals := newEnvironment(nil)
+	return &Interpreter{globals: globals, env: globals}
 }
 
 func (r *Interpreter) Run(stmt ast.Stmt) error {
@@ -51,7 +53,7 @@ func (r *Interpreter) RunBlock(list []ast.Stmt, env *Environment) error {
 func (r *Interpreter) Eval(expr ast.Expr) (*types.Value, error) {
 	result, err := expr.Accept(r)
 	if err != nil {
-		return types.NewValue(nil), err
+		return types.NewBasicValue(nil), err
 	}
 	return result, nil
 }
@@ -61,7 +63,7 @@ func (r *Interpreter) VisitIdent(expr *ast.Ident) (*types.Value, error) {
 }
 
 func (r *Interpreter) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
-	return types.NewValue(lit.Value.Lit), nil
+	return types.NewBasicValue(lit.Value.Lit), nil
 }
 
 func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
@@ -80,41 +82,41 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error
 	if isLeftInt && isRightInt {
 		switch expr.Op.Kind {
 		case token.ADD:
-			return types.NewValue(leftInt + rightInt), nil
+			return types.NewBasicValue(leftInt + rightInt), nil
 		case token.SUB:
-			return types.NewValue(leftInt - rightInt), nil
+			return types.NewBasicValue(leftInt - rightInt), nil
 		case token.MUL:
-			return types.NewValue(leftInt * rightInt), nil
+			return types.NewBasicValue(leftInt * rightInt), nil
 		case token.QUO:
-			return types.NewValue(leftInt / rightInt), nil
+			return types.NewBasicValue(leftInt / rightInt), nil
 		case token.REM:
-			return types.NewValue(leftInt % rightInt), nil
+			return types.NewBasicValue(leftInt % rightInt), nil
 		case token.AND:
-			return types.NewValue(leftInt & rightInt), nil
+			return types.NewBasicValue(leftInt & rightInt), nil
 		case token.OR:
-			return types.NewValue(leftInt | rightInt), nil
+			return types.NewBasicValue(leftInt | rightInt), nil
 		case token.XOR:
-			return types.NewValue(leftInt ^ rightInt), nil
+			return types.NewBasicValue(leftInt ^ rightInt), nil
 		case token.SHL:
-			return types.NewValue(leftInt << rightInt), nil
+			return types.NewBasicValue(leftInt << rightInt), nil
 		case token.SHR:
-			return types.NewValue(leftInt >> rightInt), nil
+			return types.NewBasicValue(leftInt >> rightInt), nil
 		case token.AND_NOT:
-			return types.NewValue(leftInt &^ rightInt), nil
+			return types.NewBasicValue(leftInt &^ rightInt), nil
 
 		// comparison
 		case token.EQL:
-			return types.NewValue(leftInt == rightInt), nil
+			return types.NewBasicValue(leftInt == rightInt), nil
 		case token.NEQ:
-			return types.NewValue(leftInt != rightInt), nil
+			return types.NewBasicValue(leftInt != rightInt), nil
 		case token.LSS:
-			return types.NewValue(leftInt < rightInt), nil
+			return types.NewBasicValue(leftInt < rightInt), nil
 		case token.GTR:
-			return types.NewValue(leftInt > rightInt), nil
+			return types.NewBasicValue(leftInt > rightInt), nil
 		case token.LEQ:
-			return types.NewValue(leftInt <= rightInt), nil
+			return types.NewBasicValue(leftInt <= rightInt), nil
 		case token.GEQ:
-			return types.NewValue(leftInt >= rightInt), nil
+			return types.NewBasicValue(leftInt >= rightInt), nil
 
 		default:
 			return nil, fmt.Errorf("invalid integer operator")
@@ -133,29 +135,29 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error
 
 		switch expr.Op.Kind {
 		case token.ADD:
-			return types.NewValue(leftFloat + rightFloat), nil
+			return types.NewBasicValue(leftFloat + rightFloat), nil
 		case token.SUB:
-			return types.NewValue(leftFloat - rightFloat), nil
+			return types.NewBasicValue(leftFloat - rightFloat), nil
 		case token.MUL:
-			return types.NewValue(leftFloat * rightFloat), nil
+			return types.NewBasicValue(leftFloat * rightFloat), nil
 		case token.QUO:
-			return types.NewValue(leftFloat / rightFloat), nil
+			return types.NewBasicValue(leftFloat / rightFloat), nil
 		case token.REM:
-			return types.NewValue(math.Mod(leftFloat, rightFloat)), nil
+			return types.NewBasicValue(math.Mod(leftFloat, rightFloat)), nil
 
 		// comparison
 		case token.EQL:
-			return types.NewValue(leftFloat == rightFloat), nil
+			return types.NewBasicValue(leftFloat == rightFloat), nil
 		case token.NEQ:
-			return types.NewValue(leftFloat != rightFloat), nil
+			return types.NewBasicValue(leftFloat != rightFloat), nil
 		case token.LSS:
-			return types.NewValue(leftFloat < rightFloat), nil
+			return types.NewBasicValue(leftFloat < rightFloat), nil
 		case token.GTR:
-			return types.NewValue(leftFloat > rightFloat), nil
+			return types.NewBasicValue(leftFloat > rightFloat), nil
 		case token.LEQ:
-			return types.NewValue(leftFloat <= rightFloat), nil
+			return types.NewBasicValue(leftFloat <= rightFloat), nil
 		case token.GEQ:
-			return types.NewValue(leftFloat >= rightFloat), nil
+			return types.NewBasicValue(leftFloat >= rightFloat), nil
 
 		default:
 			return nil, fmt.Errorf("invalid float operator")
@@ -168,21 +170,21 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error
 	if isLeftStr && isRightStr {
 		switch expr.Op.Kind {
 		case token.ADD:
-			return types.NewValue(leftStr + rightStr), nil
+			return types.NewBasicValue(leftStr + rightStr), nil
 
 		// comparison
 		case token.EQL:
-			return types.NewValue(leftStr == rightStr), nil
+			return types.NewBasicValue(leftStr == rightStr), nil
 		case token.NEQ:
-			return types.NewValue(leftStr != rightStr), nil
+			return types.NewBasicValue(leftStr != rightStr), nil
 		case token.LSS:
-			return types.NewValue(strings.Compare(leftStr, rightStr) < 0), nil
+			return types.NewBasicValue(strings.Compare(leftStr, rightStr) < 0), nil
 		case token.GTR:
-			return types.NewValue(strings.Compare(leftStr, rightStr) > 0), nil
+			return types.NewBasicValue(strings.Compare(leftStr, rightStr) > 0), nil
 		case token.LEQ:
-			return types.NewValue(leftStr == rightStr || strings.Compare(leftStr, rightStr) < 0), nil
+			return types.NewBasicValue(leftStr == rightStr || strings.Compare(leftStr, rightStr) < 0), nil
 		case token.GEQ:
-			return types.NewValue(leftStr == rightStr || strings.Compare(leftStr, rightStr) > 0), nil
+			return types.NewBasicValue(leftStr == rightStr || strings.Compare(leftStr, rightStr) > 0), nil
 		default:
 			return nil, fmt.Errorf("invalid string operator")
 		}
@@ -196,13 +198,13 @@ func (r *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error
 	if isLeftBool && isRightBool {
 		switch expr.Op.Kind {
 		case token.LAND:
-			return types.NewValue(leftBool && rightBool), nil
+			return types.NewBasicValue(leftBool && rightBool), nil
 		case token.LOR:
-			return types.NewValue(leftBool || rightBool), nil
+			return types.NewBasicValue(leftBool || rightBool), nil
 		case token.EQL:
-			return types.NewValue(leftBool == rightBool), nil
+			return types.NewBasicValue(leftBool == rightBool), nil
 		case token.NEQ:
-			return types.NewValue(leftBool != rightBool), nil
+			return types.NewBasicValue(leftBool != rightBool), nil
 		default:
 			return nil, fmt.Errorf("invalid bool operator")
 		}
@@ -218,10 +220,10 @@ func (r *Interpreter) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) 
 			return nil, err
 		}
 		if rval, ok := right.Native.(float64); ok {
-			return types.NewValue(-1 * rval), nil
+			return types.NewBasicValue(-1 * rval), nil
 		}
 		if rval, ok := right.Native.(int); ok {
-			return types.NewValue(-1 * rval), nil
+			return types.NewBasicValue(-1 * rval), nil
 		}
 		return nil, fmt.Errorf("the operand must be a number")
 	}
@@ -232,12 +234,39 @@ func (r *Interpreter) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) 
 			return nil, err
 		}
 		if rval, ok := right.Native.(bool); ok {
-			return types.NewValue(!rval), nil
+			return types.NewBasicValue(!rval), nil
 		}
 		return nil, fmt.Errorf("the operand must be a bool")
 	}
 
 	return nil, fmt.Errorf("invalid unary operator")
+}
+
+func (r *Interpreter) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
+	callee, err := r.Eval(expr.Callee)
+	if err != nil {
+		return nil, err
+	}
+
+	var args []*types.Value
+	for _, arg := range expr.Args {
+		val, err := r.Eval(arg)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, val)
+	}
+
+	callable, ok := callee.Native.(Callable)
+	if !ok {
+		return nil, fmt.Errorf("the callee is not callable")
+	}
+
+	if len(args) != callable.Arity() {
+		return nil, fmt.Errorf("expected %d arguments, but got %d", callable.Arity(), len(args))
+	}
+
+	return callable.Call(r, args)
 }
 
 func (r *Interpreter) VisitParenExpr(expr *ast.ParenExpr) (*types.Value, error) {
@@ -318,6 +347,18 @@ func (r *Interpreter) VisitForStmt(stmt *ast.ForStmt) error {
 	return nil
 }
 
+func (r *Interpreter) VisitReturnStmt(stmt *ast.ReturnStmt) error {
+	var result *types.Value
+	if stmt.Result != nil {
+		val, err := r.Eval(stmt.Result)
+		if err != nil {
+			return err
+		}
+		result = val
+	}
+	return &Return{result: result}
+}
+
 func (r *Interpreter) VisitBranchStmt(stmt *ast.BranchStmt) error {
 	switch stmt.Tok.Kind {
 	case token.BREAK:
@@ -358,4 +399,10 @@ func (r *Interpreter) VisitVarDecl(stmt *ast.VarDecl) error {
 		return err
 	}
 	return r.env.Define(stmt.Name.Lexeme, v)
+}
+
+func (r *Interpreter) VisitFuncDecl(stmt *ast.FuncDecl) error {
+	fn := &Func{decl: stmt}
+	r.env.Define(stmt.Name.Lexeme, &types.Value{Type: types.Func, Native: fn})
+	return nil
 }
