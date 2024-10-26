@@ -26,6 +26,7 @@ func (p *Printer) Stringify(expr ast.Expr) string {
 	return p.sb.String()
 }
 
+// -- ExprVisitor --
 func (p *Printer) VisitIdent(expr *ast.Ident) (*types.Value, error) {
 	p.oneLinePrintf("Indent(%q)", expr.Name.Lexeme)
 
@@ -113,6 +114,79 @@ func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (*types.Value, error) {
 	p.endElement()
 
 	return nil, nil
+}
+
+// -- StmtVisitor --
+func (p *Printer) VisitPrintStmt(stmt *ast.PrintStmt) error {
+	p.startElement("PrintStmt")
+	stmt.Expr.Accept(p)
+	p.endElement()
+
+	return nil
+}
+
+func (p *Printer) VisitExprStmt(stmt *ast.ExprStmt) error {
+	p.startElement("ExprStmt")
+	stmt.Expr.Accept(p)
+	p.endElement()
+
+	return nil
+}
+
+func (p *Printer) VisitAssignStmt(stmt *ast.AssignStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitBlockStmt(stmt *ast.BlockStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitIfStmt(stmt *ast.IfStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitForStmt(stmt *ast.ForStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitReturnStmt(stmt *ast.ReturnStmt) error {
+	p.startElement("ExprStmt")
+	stmt.Result.Accept(p)
+	p.endElement()
+
+	return nil
+}
+
+func (p *Printer) VisitBranchStmt(stmt *ast.BranchStmt) error {
+	switch stmt.Tok.Kind {
+	case token.BREAK:
+		p.oneLinePrintf("BreakStmt()")
+	case token.CONTINUE:
+		p.oneLinePrintf("ContinueStmt()")
+	default:
+		panic("invalid branch stmt")
+	}
+
+	return nil
+}
+
+func (p *Printer) VisitIncDecStmt(stmt *ast.IncDecStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitVarDecl(stmt *ast.VarDecl) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitFuncDecl(stmt *ast.FuncDecl) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 // -- helpers --
