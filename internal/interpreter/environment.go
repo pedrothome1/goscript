@@ -7,14 +7,14 @@ import (
 
 type Environment struct {
 	up *Environment
-	m  map[string]*types.Value
+	m  map[string]*types.Object
 }
 
 func newEnvironment(upper *Environment) *Environment {
-	return &Environment{up: upper, m: make(map[string]*types.Value)}
+	return &Environment{up: upper, m: make(map[string]*types.Object)}
 }
 
-func (e *Environment) Define(name string, value *types.Value) error {
+func (e *Environment) Define(name string, value *types.Object) error {
 	if _, ok := e.m[name]; ok {
 		return fmt.Errorf("variable already defined")
 	}
@@ -22,7 +22,7 @@ func (e *Environment) Define(name string, value *types.Value) error {
 	return nil
 }
 
-func (e *Environment) Assign(name string, value *types.Value) error {
+func (e *Environment) Assign(name string, value *types.Object) error {
 	v, ok := e.m[name]
 	if !ok {
 		if e.up != nil {
@@ -37,7 +37,7 @@ func (e *Environment) Assign(name string, value *types.Value) error {
 	return nil
 }
 
-func (e *Environment) Get(name string) (*types.Value, error) {
+func (e *Environment) Get(name string) (*types.Object, error) {
 	if v, ok := e.m[name]; ok {
 		return v, nil
 	}

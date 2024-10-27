@@ -9,11 +9,11 @@ import (
 
 type Callable interface {
 	Arity() int
-	Call(r *Interpreter, args []*types.Value) (*types.Value, error)
+	Call(r *Interpreter, args []*types.Object) (*types.Object, error)
 }
 
 type Return struct {
-	result *types.Value
+	result *types.Object
 }
 
 func (r *Return) Error() string {
@@ -29,7 +29,7 @@ func (f *Func) Arity() int {
 }
 
 // We assume the arity is already validated.
-func (f *Func) Call(r *Interpreter, args []*types.Value) (*types.Value, error) {
+func (f *Func) Call(r *Interpreter, args []*types.Object) (*types.Object, error) {
 	env := newEnvironment(r.globals)
 	for i, p := range f.decl.Params {
 		env.Define(p.Name.Lexeme, args[i])

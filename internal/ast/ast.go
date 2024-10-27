@@ -6,12 +6,12 @@ import (
 )
 
 type ExprVisitor interface {
-	VisitIdent(expr *Ident) (*types.Value, error)
-	VisitBasicLit(lit *BasicLit) (*types.Value, error)
-	VisitBinaryExpr(expr *BinaryExpr) (*types.Value, error)
-	VisitUnaryExpr(expr *UnaryExpr) (*types.Value, error)
-	VisitCallExpr(expr *CallExpr) (*types.Value, error)
-	VisitParenExpr(expr *ParenExpr) (*types.Value, error)
+	VisitIdent(expr *Ident) (*types.Object, error)
+	VisitBasicLit(lit *BasicLit) (*types.Object, error)
+	VisitBinaryExpr(expr *BinaryExpr) (*types.Object, error)
+	VisitUnaryExpr(expr *UnaryExpr) (*types.Object, error)
+	VisitCallExpr(expr *CallExpr) (*types.Object, error)
+	VisitParenExpr(expr *ParenExpr) (*types.Object, error)
 }
 
 type StmtVisitor interface {
@@ -30,7 +30,7 @@ type StmtVisitor interface {
 
 // --- expressions ---
 type Expr interface {
-	Accept(v ExprVisitor) (*types.Value, error)
+	Accept(v ExprVisitor) (*types.Object, error)
 	exprNode()
 }
 
@@ -62,18 +62,18 @@ type ParenExpr struct {
 	X Expr
 }
 
-func (e *Ident) Accept(v ExprVisitor) (*types.Value, error)      { return v.VisitIdent(e) }
-func (e *Ident) exprNode()                                       {}
-func (e *BasicLit) Accept(v ExprVisitor) (*types.Value, error)   { return v.VisitBasicLit(e) }
-func (e *BasicLit) exprNode()                                    {}
-func (e *BinaryExpr) Accept(v ExprVisitor) (*types.Value, error) { return v.VisitBinaryExpr(e) }
-func (e *BinaryExpr) exprNode()                                  {}
-func (e *UnaryExpr) Accept(v ExprVisitor) (*types.Value, error)  { return v.VisitUnaryExpr(e) }
-func (e *UnaryExpr) exprNode()                                   {}
-func (e *CallExpr) Accept(v ExprVisitor) (*types.Value, error)   { return v.VisitCallExpr(e) }
-func (e *CallExpr) exprNode()                                    {}
-func (e *ParenExpr) Accept(v ExprVisitor) (*types.Value, error)  { return v.VisitParenExpr(e) }
-func (e *ParenExpr) exprNode()                                   {}
+func (e *Ident) Accept(v ExprVisitor) (*types.Object, error)      { return v.VisitIdent(e) }
+func (e *Ident) exprNode()                                        {}
+func (e *BasicLit) Accept(v ExprVisitor) (*types.Object, error)   { return v.VisitBasicLit(e) }
+func (e *BasicLit) exprNode()                                     {}
+func (e *BinaryExpr) Accept(v ExprVisitor) (*types.Object, error) { return v.VisitBinaryExpr(e) }
+func (e *BinaryExpr) exprNode()                                   {}
+func (e *UnaryExpr) Accept(v ExprVisitor) (*types.Object, error)  { return v.VisitUnaryExpr(e) }
+func (e *UnaryExpr) exprNode()                                    {}
+func (e *CallExpr) Accept(v ExprVisitor) (*types.Object, error)   { return v.VisitCallExpr(e) }
+func (e *CallExpr) exprNode()                                     {}
+func (e *ParenExpr) Accept(v ExprVisitor) (*types.Object, error)  { return v.VisitParenExpr(e) }
+func (e *ParenExpr) exprNode()                                    {}
 
 // --- statements ---
 type Stmt interface {

@@ -8,20 +8,20 @@ import (
 
 func New() *Resolver {
 	var r Resolver
-	r.globals = map[string]*types.Value{
-		"int":    {Type: types.TypeT, Native: types.Int},
-		"float":  {Type: types.TypeT, Native: types.Float},
-		"string": {Type: types.TypeT, Native: types.String},
-		"char":   {Type: types.TypeT, Native: types.Int},
-		"bool":   {Type: types.TypeT, Native: types.Bool},
+	r.globals = map[string]*types.Object{
+		"int":    {Type: types.Type, Value: types.Int},
+		"float":  {Type: types.Type, Value: types.Float},
+		"string": {Type: types.Type, Value: types.String},
+		"char":   {Type: types.Type, Value: types.Char},
+		"bool":   {Type: types.Type, Value: types.Bool},
 	}
 
 	return &r
 }
 
 type Resolver struct {
-	globals map[string]*types.Value
-	locals  []map[string]*types.Value
+	globals map[string]*types.Object
+	locals  []map[string]*types.Object
 	fn      *ast.FuncDecl
 	ret     *ast.ReturnStmt
 	loop    *ast.ForStmt
@@ -37,7 +37,7 @@ func (r *Resolver) Resolve(program []ast.Stmt) error {
 	return nil
 }
 
-func (r *Resolver) declareSymbolAt(scope map[string]*types.Value, name string, value *types.Value) error {
+func (r *Resolver) declareSymbolAt(scope map[string]*types.Object, name string, value *types.Object) error {
 	if _, ok := scope[name]; ok {
 		return resolveErrorf("%q already declared in scope", name)
 	}
@@ -47,7 +47,7 @@ func (r *Resolver) declareSymbolAt(scope map[string]*types.Value, name string, v
 	return nil
 }
 
-func (r *Resolver) declareSymbol(name string, value *types.Value) error {
+func (r *Resolver) declareSymbol(name string, value *types.Object) error {
 	if len(r.locals) == 0 {
 		return r.declareSymbolAt(r.globals, name, value)
 	}
@@ -55,7 +55,7 @@ func (r *Resolver) declareSymbol(name string, value *types.Value) error {
 	return r.declareSymbolAt(r.locals[len(r.locals)-1], name, value)
 }
 
-func (r *Resolver) symbolDeclared(symbol string) (*types.Value, bool) {
+func (r *Resolver) symbolDeclared(symbol string) (*types.Object, bool) {
 	if sym, ok := r.globals[symbol]; ok {
 		return sym, true
 	}
@@ -78,7 +78,7 @@ func (r *Resolver) visitField(kind string, field *ast.Field) error {
 	if !ok {
 		return resolveErrorf("%s %q declared with invalid type", kind, field.Type.Lexeme)
 	}
-	if sym.Type != types.TypeT {
+	if sym.Type != types.Type {
 		if field.Name.Lexeme != "" {
 			return resolveErrorf("%s %q declared with non-type %q", kind, field.Name.Lexeme, field.Type.Lexeme)
 		}
@@ -87,7 +87,7 @@ func (r *Resolver) visitField(kind string, field *ast.Field) error {
 	return nil
 }
 
-func (r *Resolver) VisitIdent(expr *ast.Ident) (*types.Value, error) {
+func (r *Resolver) VisitIdent(expr *ast.Ident) (*types.Object, error) {
 	if sym, ok := r.symbolDeclared(expr.Name.Lexeme); ok {
 		return sym, nil
 	}
@@ -95,11 +95,11 @@ func (r *Resolver) VisitIdent(expr *ast.Ident) (*types.Value, error) {
 	return nil, resolveErrorf("undeclared symbol %q at %d:%d", expr.Name.Lexeme, expr.Name.Line, expr.Name.Col)
 }
 
-func (r *Resolver) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
-	return types.NewBasicValue(lit.Value.Lit), nil
+func (r *Resolver) VisitBasicLit(lit *ast.BasicLit) (*types.Object, error) {
+	return types.NewBasic(lit.Value.Lit), nil
 }
 
-func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
+func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Object, error) {
 	left, err := expr.Left.Accept(r)
 	if err != nil {
 		return nil, err
@@ -110,12 +110,12 @@ func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
 		return nil, err
 	}
 
-	var typ types.Type
+	var typ types.Kind
 
 	if left.Type == types.String && right.Type == types.String {
 		typ = types.String
 		if expr.Op.Kind == token.ADD {
-			return &types.Value{Type: typ}, nil
+			return &types.Object{Type: typ}, nil
 		}
 	}
 
@@ -123,7 +123,7 @@ func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
 		typ = types.Bool
 		switch expr.Op.Kind {
 		case token.LAND, token.LOR:
-			return &types.Value{Type: typ}, nil
+			return &types.Object{Type: typ}, nil
 		}
 	}
 
@@ -131,7 +131,7 @@ func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
 		typ = types.Int
 		switch expr.Op.Kind {
 		case token.AND, token.OR, token.XOR, token.SHL, token.SHR, token.AND_NOT:
-			return &types.Value{Type: typ}, nil
+			return &types.Object{Type: typ}, nil
 		}
 	}
 
@@ -141,23 +141,23 @@ func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
 		}
 		switch expr.Op.Kind {
 		case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
-			return &types.Value{Type: typ}, nil
+			return &types.Object{Type: typ}, nil
 		}
 	}
 
 	switch expr.Op.Kind {
 	case token.EQL, token.NEQ:
-		return &types.Value{Type: types.Bool}, nil
+		return &types.Object{Type: types.Bool}, nil
 	case token.LSS, token.GTR, token.LEQ, token.GEQ:
 		if typ != types.Bool {
-			return &types.Value{Type: types.Bool}, nil
+			return &types.Object{Type: types.Bool}, nil
 		}
 	}
 
 	return nil, resolveErrorf("binary operator %q not supported on type", expr.Op.Lexeme)
 }
 
-func (r *Resolver) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
+func (r *Resolver) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Object, error) {
 	v, err := expr.Right.Accept(r)
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ func (r *Resolver) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
 	return nil, resolveErrorf("unrecognized unary operator %q", expr.Op.Lexeme)
 }
 
-func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
+func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Object, error) {
 	if ident, ok := expr.Callee.(*ast.Ident); ok {
 		sym, ok := r.symbolDeclared(ident.Name.Lexeme)
 		if !ok {
@@ -193,12 +193,12 @@ func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
 			return nil, resolveErrorf("calling non-function object %q at %d:%d", ident.Name.Lexeme, ident.Name.Line, ident.Name.Col)
 		}
 
-		fnDecl := sym.Native.(*ast.FuncDecl)
+		fnDecl := sym.Value.(*ast.FuncDecl)
 		retType := types.Invalid
 		if fnDecl.Result != nil {
 			retType = types.FromLexeme(fnDecl.Result.Type.Lexeme)
 		}
-		return &types.Value{
+		return &types.Object{
 			Type: retType,
 		}, nil
 	}
@@ -210,7 +210,7 @@ func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
 	return nil, resolveErrorf("unrecognized callable")
 }
 
-func (r *Resolver) VisitParenExpr(expr *ast.ParenExpr) (*types.Value, error) {
+func (r *Resolver) VisitParenExpr(expr *ast.ParenExpr) (*types.Object, error) {
 	return expr.X.Accept(r)
 }
 
@@ -244,7 +244,7 @@ func (r *Resolver) VisitAssignStmt(stmt *ast.AssignStmt) error {
 
 func (r *Resolver) VisitBlockStmt(stmt *ast.BlockStmt) error {
 	r.block = stmt
-	r.locals = append(r.locals, make(map[string]*types.Value))
+	r.locals = append(r.locals, make(map[string]*types.Object))
 	defer func() {
 		r.block = nil
 		r.locals = r.locals[:len(r.locals)-1]
@@ -376,10 +376,10 @@ func (r *Resolver) VisitVarDecl(stmt *ast.VarDecl) error {
 		if !ok {
 			return resolveErrorf("variable %q declared with undeclared type %q", stmt.Name.Lexeme, typ.Name.Lexeme)
 		}
-		if sym.Type != types.TypeT {
+		if sym.Type != types.Type {
 			return resolveErrorf("variable %q declared with non-type %q", stmt.Name.Lexeme, typ.Name.Lexeme)
 		}
-		declaredType = sym.Native.(types.Type)
+		declaredType = sym.Value.(types.Kind)
 	}
 
 	v, err := stmt.Value.Accept(r)
@@ -417,12 +417,12 @@ func (r *Resolver) VisitFuncDecl(stmt *ast.FuncDecl) error {
 		return err
 	}
 
-	locals := make(map[string]*types.Value, len(stmt.Params))
+	locals := make(map[string]*types.Object, len(stmt.Params))
 	for _, param := range stmt.Params {
-		locals[param.Name.Lexeme] = &types.Value{Type: types.FromLexeme(param.Type.Lexeme)}
+		locals[param.Name.Lexeme] = &types.Object{Type: types.FromLexeme(param.Type.Lexeme)}
 	}
 
-	err := r.declareSymbolAt(r.globals, stmt.Name.Lexeme, &types.Value{Type: types.Func, Native: stmt})
+	err := r.declareSymbolAt(r.globals, stmt.Name.Lexeme, &types.Object{Type: types.Func, Value: stmt})
 	if err != nil {
 		return err
 	}

@@ -27,13 +27,13 @@ func (p *Printer) Stringify(expr ast.Expr) string {
 }
 
 // -- ExprVisitor --
-func (p *Printer) VisitIdent(expr *ast.Ident) (*types.Value, error) {
+func (p *Printer) VisitIdent(expr *ast.Ident) (*types.Object, error) {
 	p.oneLinePrintf("Indent(%q)", expr.Name.Lexeme)
 
 	return nil, nil
 }
 
-func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
+func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (*types.Object, error) {
 	switch lit.Value.Kind {
 	case token.FLOAT:
 		val := strconv.FormatFloat(lit.Value.Lit.(float64), 'f', -1, 64)
@@ -51,7 +51,7 @@ func (p *Printer) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
 	return nil, nil
 }
 
-func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
+func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Object, error) {
 	p.startElement("BinaryExpr")
 
 	p.inMiddleElement()
@@ -68,7 +68,7 @@ func (p *Printer) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
 	return nil, nil
 }
 
-func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
+func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Object, error) {
 	p.startElement("UnaryExpr")
 
 	p.inMiddleElement()
@@ -82,7 +82,7 @@ func (p *Printer) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
 	return nil, nil
 }
 
-func (p *Printer) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
+func (p *Printer) VisitCallExpr(expr *ast.CallExpr) (*types.Object, error) {
 	if len(expr.Args) == 0 {
 		p.oneLinePrintf("CallExpr()")
 		return nil, nil
@@ -105,7 +105,7 @@ func (p *Printer) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
 	return nil, nil
 }
 
-func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (*types.Value, error) {
+func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (*types.Object, error) {
 	p.startElement("ParenExpr")
 
 	p.inLastElement()

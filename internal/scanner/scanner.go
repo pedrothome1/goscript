@@ -224,7 +224,7 @@ func (s *Scanner) addChar() error {
 	if s.peek() == '\n' {
 		return fmt.Errorf("char literal with newline")
 	}
-	var escaped uint8
+	var escaped rune
 	if s.peek() == '\\' {
 		s.advance()
 		switch s.peek() {
@@ -255,9 +255,9 @@ func (s *Scanner) addChar() error {
 	}
 	s.advance()
 	if escaped != 0 {
-		s.addToken(token.CHAR, int(escaped))
+		s.addToken(token.CHAR, escaped)
 	} else {
-		s.addToken(token.CHAR, int(s.src[s.start+1]))
+		s.addToken(token.CHAR, rune(s.src[s.start+1]))
 	}
 	return nil
 }
@@ -377,23 +377,6 @@ func (s *Scanner) isAlphaNumeric(c byte) bool {
 	return s.isAlpha(c) || s.isDigit(c)
 }
 
-type ScanError struct {
-	message string
-	details string
-}
-
-func (e *ScanError) Error() string {
-	return e.message
-}
-
-func (e *ScanError) Details() string {
-	return e.details
-}
-
-func (e *ScanError) Report() {
-	fmt.Print(e.details)
-}
-
 func (s *Scanner) scanError(ch byte) *ScanError {
 	ln := 1
 	i := 0
@@ -416,4 +399,21 @@ func (s *Scanner) scanError(ch byte) *ScanError {
 		message: msg,
 		details: sb.String(),
 	}
+}
+
+type ScanError struct {
+	message string
+	details string
+}
+
+func (e *ScanError) Error() string {
+	return e.message
+}
+
+func (e *ScanError) Details() string {
+	return e.details
+}
+
+func (e *ScanError) Report() {
+	fmt.Print(e.details)
 }

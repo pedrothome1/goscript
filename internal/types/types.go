@@ -4,38 +4,39 @@ import (
 	"fmt"
 )
 
-type Type int
+type Kind int
 
 const (
-	Invalid Type = iota
+	Invalid Kind = iota
 
-	TypeT
+	Type
+	Func
 
 	Bool
 	Int
+	Char
 	Float
 	String
-	UntypedNil
 
-	Func
+	UntypedNil
 )
 
-func (t Type) IsBasic() bool {
+func (t Kind) IsBasic() bool {
 	switch t {
-	case Bool, Int, Float, String:
+	case Bool, Int, Char, Float, String:
 		return true
 	}
 	return false
 }
 
-func (t Type) IsNumeric() bool {
+func (t Kind) IsNumeric() bool {
 	return t == Int || t == Float
 }
 
-func FromLexeme(lexeme string) Type {
-	tbl := map[string]Type{
+func FromLexeme(lexeme string) Kind {
+	tbl := map[string]Kind{
 		"int":    Int,
-		"char":   Int,
+		"char":   Char,
 		"float":  Float,
 		"bool":   Bool,
 		"string": String,
@@ -48,14 +49,14 @@ func FromLexeme(lexeme string) Type {
 	return Invalid
 }
 
-type Value struct {
-	Native any
-	Type   Type
+type Object struct {
+	Value any
+	Type  Kind
 }
 
-func NewBasicValue(native any) *Value {
-	var t Type
-	switch native.(type) {
+func NewBasic(value any) *Object {
+	var t Kind
+	switch value.(type) {
 	case bool:
 		t = Bool
 	case int:
@@ -65,41 +66,41 @@ func NewBasicValue(native any) *Value {
 	case string:
 		t = String
 	default:
-		if native == nil {
+		if value == nil {
 			t = UntypedNil
 		} else {
 			t = Invalid
 		}
 	}
 
-	return &Value{
-		Native: native,
-		Type:   t,
+	return &Object{
+		Value: value,
+		Type:  t,
 	}
 }
 
-func (v *Value) Inc() error {
-	switch val := v.Native.(type) {
+func (v *Object) Inc() error {
+	switch val := v.Value.(type) {
 	case int:
 		val++
-		v.Native = val
+		v.Value = val
 	case float64:
 		val++
-		v.Native = val
+		v.Value = val
 	default:
 		return fmt.Errorf("incrementing non-numeric type")
 	}
 	return nil
 }
 
-func (v *Value) Dec() error {
-	switch val := v.Native.(type) {
+func (v *Object) Dec() error {
+	switch val := v.Value.(type) {
 	case int:
 		val--
-		v.Native = val
+		v.Value = val
 	case float64:
 		val--
-		v.Native = val
+		v.Value = val
 	default:
 		return fmt.Errorf("decrementing non-numeric type")
 	}
