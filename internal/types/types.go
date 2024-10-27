@@ -28,6 +28,10 @@ func (t Type) IsBasic() bool {
 	return false
 }
 
+func (t Type) IsNumeric() bool {
+	return t == Int || t == Float
+}
+
 func FromLexeme(lexeme string) Type {
 	tbl := map[string]Type{
 		"int":    Int,

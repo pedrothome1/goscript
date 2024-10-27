@@ -93,8 +93,61 @@ func (r *Resolver) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
 }
 
 func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
+	left, err := expr.Left.Accept(r)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	right, err := expr.Right.Accept(r)
+	if err != nil {
+		return nil, err
+	}
+
+	var typ types.Type
+
+	if left.Type == types.String && right.Type == types.String {
+		typ = types.String
+		if expr.Op.Kind == token.ADD {
+			return &types.Value{Type: typ}, nil
+		}
+	}
+
+	if left.Type == types.Bool && right.Type == types.Bool {
+		typ = types.Bool
+		switch expr.Op.Kind {
+		case token.LAND, token.LOR:
+			return &types.Value{Type: typ}, nil
+		}
+	}
+
+	if left.Type == types.Int && right.Type == types.Int {
+		typ = types.Int
+		switch expr.Op.Kind {
+		case token.AND, token.OR, token.XOR, token.SHL, token.SHR, token.AND_NOT:
+			return &types.Value{Type: typ}, nil
+		}
+	}
+
+	if left.Type.IsNumeric() && right.Type.IsNumeric() {
+		if typ != types.Int {
+			typ = types.Float
+		}
+		switch expr.Op.Kind {
+		case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
+			return &types.Value{Type: typ}, nil
+		}
+	}
+
+	switch expr.Op.Kind {
+	case token.EQL, token.NEQ:
+		return &types.Value{Type: typ}, nil
+	case token.LSS, token.GTR, token.LEQ, token.GEQ:
+		if typ != types.Bool {
+			return &types.Value{Type: typ}, nil
+		}
+	}
+
+	return nil, resolveErrorf("binary operator %q not supported on type", expr.Op.Lexeme)
 }
 
 func (r *Resolver) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
@@ -123,7 +176,31 @@ func (r *Resolver) VisitUnaryExpr(expr *ast.UnaryExpr) (*types.Value, error) {
 }
 
 func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
+	if ident, ok := expr.Callee.(*ast.Ident); ok {
+		sym, ok := r.symbolDeclared(ident.Name.Lexeme)
+		if !ok {
+			return nil, resolveErrorf("calling undeclared callable %q", ident.Name.Lexeme)
+		}
 
+		if sym.Type != types.Func {
+			return nil, resolveErrorf("calling non-function object %q", ident.Name.Lexeme)
+		}
+
+		fnDecl := sym.Native.(*ast.FuncDecl)
+		retType := types.Invalid
+		if fnDecl.Result != nil {
+			retType = types.FromLexeme(fnDecl.Result.Type.Lexeme)
+		}
+		return &types.Value{
+			Type: retType,
+		}, nil
+	}
+
+	if call, ok := expr.Callee.(*ast.CallExpr); ok {
+		return r.VisitCallExpr(call)
+	}
+
+	return nil, resolveErrorf("unrecognized callable")
 }
 
 func (r *Resolver) VisitParenExpr(expr *ast.ParenExpr) (*types.Value, error) {
