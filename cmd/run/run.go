@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/pedrothome1/goscript/internal/interpreter"
 	"github.com/pedrothome1/goscript/internal/parser"
+	"github.com/pedrothome1/goscript/internal/resolver"
 	"github.com/pedrothome1/goscript/internal/scanner"
 	"log"
 	"os"
@@ -22,6 +23,8 @@ func main() {
 	}
 
 	runner := interpreter.New()
+	resolv := resolver.New()
+
 	if len(args) == 1 {
 		src, err := os.ReadFile(args[0])
 		if err != nil {
@@ -39,6 +42,10 @@ func main() {
 		stmts, err := p.Parse()
 		if err != nil {
 			log.Fatalf("parse error: %s\n", err.Error())
+		}
+		err = resolv.Resolve(stmts)
+		if err != nil {
+			log.Fatalf("resolution error: %s\n", err.Error())
 		}
 		err = runner.RunProgram(stmts)
 		if err != nil {
@@ -73,6 +80,11 @@ func main() {
 		stmts, err := p.Parse()
 		if err != nil {
 			log.Printf("parse error: %s\n", err.Error())
+			continue
+		}
+		err = resolv.Resolve(stmts)
+		if err != nil {
+			log.Printf("resolution error: %s\n", err.Error())
 			continue
 		}
 		err = runner.RunProgram(stmts)

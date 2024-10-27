@@ -177,7 +177,7 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 }
 
 func (s *Scanner) addToken(kind token.Kind, lit any) {
-	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos], s.line, s.col})
+	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos], s.line, s.col - (s.pos - s.start) + 1})
 }
 
 func (s *Scanner) addNumber() error {

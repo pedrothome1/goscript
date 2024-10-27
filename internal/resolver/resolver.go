@@ -23,32 +23,36 @@ type Resolver struct {
 	globals map[string]*types.Value
 	locals  []map[string]*types.Value
 	fn      *ast.FuncDecl
+	ret     *ast.ReturnStmt
 	loop    *ast.ForStmt
+	block   *ast.BlockStmt
 }
 
 func (r *Resolver) Resolve(program []ast.Stmt) error {
+	for _, stmt := range program {
+		if err := stmt.Accept(r); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (r *Resolver) declareSymbol(name string, value *types.Value) error {
-	var scope map[string]*types.Value
-	var kind string
-
-	if len(r.locals) == 0 {
-		scope = r.globals
-		kind = "global"
-	} else {
-		scope = r.locals[len(r.locals)-1]
-		kind = "local"
-	}
-
+func (r *Resolver) declareSymbolAt(scope map[string]*types.Value, name string, value *types.Value) error {
 	if _, ok := scope[name]; ok {
-		return resolveErrorf("%q already declared in %s scope", name, kind)
+		return resolveErrorf("%q already declared in scope", name)
 	}
 
 	scope[name] = value
 
 	return nil
+}
+
+func (r *Resolver) declareSymbol(name string, value *types.Value) error {
+	if len(r.locals) == 0 {
+		return r.declareSymbolAt(r.globals, name, value)
+	}
+
+	return r.declareSymbolAt(r.locals[len(r.locals)-1], name, value)
 }
 
 func (r *Resolver) symbolDeclared(symbol string) (*types.Value, bool) {
@@ -67,6 +71,9 @@ func (r *Resolver) symbolDeclared(symbol string) (*types.Value, bool) {
 }
 
 func (r *Resolver) visitField(kind string, field *ast.Field) error {
+	if field == nil {
+		return nil
+	}
 	sym, ok := r.symbolDeclared(field.Type.Lexeme)
 	if !ok {
 		return resolveErrorf("%s %q declared with invalid type", kind, field.Type.Lexeme)
@@ -85,7 +92,7 @@ func (r *Resolver) VisitIdent(expr *ast.Ident) (*types.Value, error) {
 		return sym, nil
 	}
 
-	return nil, resolveErrorf("undeclared symbol %q", expr.Name.Lexeme)
+	return nil, resolveErrorf("undeclared symbol %q at %d:%d", expr.Name.Lexeme, expr.Name.Line, expr.Name.Col)
 }
 
 func (r *Resolver) VisitBasicLit(lit *ast.BasicLit) (*types.Value, error) {
@@ -140,10 +147,10 @@ func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Value, error) {
 
 	switch expr.Op.Kind {
 	case token.EQL, token.NEQ:
-		return &types.Value{Type: typ}, nil
+		return &types.Value{Type: types.Bool}, nil
 	case token.LSS, token.GTR, token.LEQ, token.GEQ:
 		if typ != types.Bool {
-			return &types.Value{Type: typ}, nil
+			return &types.Value{Type: types.Bool}, nil
 		}
 	}
 
@@ -179,11 +186,11 @@ func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Value, error) {
 	if ident, ok := expr.Callee.(*ast.Ident); ok {
 		sym, ok := r.symbolDeclared(ident.Name.Lexeme)
 		if !ok {
-			return nil, resolveErrorf("calling undeclared callable %q", ident.Name.Lexeme)
+			return nil, resolveErrorf("calling undeclared callable %q at %d:%d", ident.Name.Lexeme, ident.Name.Line, ident.Name.Col)
 		}
 
 		if sym.Type != types.Func {
-			return nil, resolveErrorf("calling non-function object %q", ident.Name.Lexeme)
+			return nil, resolveErrorf("calling non-function object %q at %d:%d", ident.Name.Lexeme, ident.Name.Line, ident.Name.Col)
 		}
 
 		fnDecl := sym.Native.(*ast.FuncDecl)
@@ -236,6 +243,13 @@ func (r *Resolver) VisitAssignStmt(stmt *ast.AssignStmt) error {
 }
 
 func (r *Resolver) VisitBlockStmt(stmt *ast.BlockStmt) error {
+	r.block = stmt
+	r.locals = append(r.locals, make(map[string]*types.Value))
+	defer func() {
+		r.block = nil
+		r.locals = r.locals[:len(r.locals)-1]
+	}()
+
 	for _, s := range stmt.List {
 		if err := s.Accept(r); err != nil {
 			return err
@@ -309,14 +323,20 @@ func (r *Resolver) VisitReturnStmt(stmt *ast.ReturnStmt) error {
 		return nil
 	}
 
+	if stmt.Result == nil {
+		return resolveErrorf("naked 'return', expected return type: %s", r.fn.Result.Type.Lexeme)
+	}
+
 	v, err := stmt.Result.Accept(r)
 	if err != nil {
 		return err
 	}
 
 	if v.Type != types.FromLexeme(r.fn.Result.Type.Lexeme) {
-		return resolveErrorf("expected return type: %s", r.fn.Result.Type.Lexeme)
+		return resolveErrorf("wrong return type, expected: %s", r.fn.Result.Type.Lexeme)
 	}
+
+	r.ret = stmt
 
 	return nil
 }
@@ -375,6 +395,14 @@ func (r *Resolver) VisitVarDecl(stmt *ast.VarDecl) error {
 }
 
 func (r *Resolver) VisitFuncDecl(stmt *ast.FuncDecl) error {
+	if r.fn != nil {
+		return resolveErrorf("can't declare a function inside another function")
+	}
+
+	if r.block != nil {
+		return resolveErrorf("can't declare a function inside a block")
+	}
+
 	if _, ok := r.symbolDeclared(stmt.Name.Lexeme); ok {
 		return resolveErrorf("symbol %q already declared in this scope", stmt.Name.Lexeme)
 	}
@@ -389,9 +417,17 @@ func (r *Resolver) VisitFuncDecl(stmt *ast.FuncDecl) error {
 		return err
 	}
 
+	locals := make(map[string]*types.Value, len(stmt.Params))
+	for _, param := range stmt.Params {
+		locals[param.Name.Lexeme] = &types.Value{Type: types.FromLexeme(param.Type.Lexeme)}
+	}
+
+	r.locals = append(r.locals, locals)
 	r.fn = stmt
 	defer func() {
 		r.fn = nil
+		r.ret = nil
+		r.locals = r.locals[:len(r.locals)-1]
 	}()
 
 	for _, s := range stmt.Body {
@@ -400,5 +436,9 @@ func (r *Resolver) VisitFuncDecl(stmt *ast.FuncDecl) error {
 		}
 	}
 
-	return r.declareSymbol(stmt.Name.Lexeme, &types.Value{Type: types.Func, Native: stmt})
+	if stmt.Result != nil && r.ret == nil {
+		return resolveErrorf("function %q at %d:%d should return the declared return type", stmt.Name.Lexeme, stmt.Name.Line, stmt.Name.Col)
+	}
+
+	return r.declareSymbolAt(r.globals, stmt.Name.Lexeme, &types.Value{Type: types.Func, Native: stmt})
 }
