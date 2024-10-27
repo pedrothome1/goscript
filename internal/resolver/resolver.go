@@ -422,6 +422,11 @@ func (r *Resolver) VisitFuncDecl(stmt *ast.FuncDecl) error {
 		locals[param.Name.Lexeme] = &types.Value{Type: types.FromLexeme(param.Type.Lexeme)}
 	}
 
+	err := r.declareSymbolAt(r.globals, stmt.Name.Lexeme, &types.Value{Type: types.Func, Native: stmt})
+	if err != nil {
+		return err
+	}
+
 	r.locals = append(r.locals, locals)
 	r.fn = stmt
 	defer func() {
@@ -440,5 +445,5 @@ func (r *Resolver) VisitFuncDecl(stmt *ast.FuncDecl) error {
 		return resolveErrorf("function %q at %d:%d should return the declared return type", stmt.Name.Lexeme, stmt.Name.Line, stmt.Name.Col)
 	}
 
-	return r.declareSymbolAt(r.globals, stmt.Name.Lexeme, &types.Value{Type: types.Func, Native: stmt})
+	return nil
 }
