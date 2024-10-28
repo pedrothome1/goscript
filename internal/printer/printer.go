@@ -27,6 +27,66 @@ func (p *Printer) Stringify(expr ast.Expr) string {
 }
 
 // -- ExprVisitor --
+func (p *Printer) VisitEllipsis(expr *ast.Ellipsis) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitFuncLit(lit *ast.FuncLit) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitCompositeLit(lit *ast.CompositeLit) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitSelectorExpr(expr *ast.SelectorExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitIndexExpr(expr *ast.IndexExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitSliceExpr(expr *ast.SliceExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitKeyValueExpr(expr *ast.KeyValueExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitSliceType(expr *ast.SliceType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitStructType(expr *ast.StructType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitInterfaceType(expr *ast.InterfaceType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitMapType(expr *ast.MapType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitFuncType(expr *ast.FuncType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Printer) VisitIdent(expr *ast.Ident) (*types.Object, error) {
 	p.oneLinePrintf("Indent(%q)", expr.Name.Lexeme)
 
@@ -117,6 +177,36 @@ func (p *Printer) VisitParenExpr(expr *ast.ParenExpr) (*types.Object, error) {
 }
 
 // -- StmtVisitor --
+func (p *Printer) VisitDeferStmt(stmt *ast.DeferStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitSwitchStmt(stmt *ast.SwitchStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitCaseClause(stmt *ast.CaseClause) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitForRangeStmt(stmt *ast.ForRangeStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitConstDecl(stmt *ast.ConstDecl) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *Printer) VisitTypeDecl(stmt *ast.TypeDecl) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Printer) VisitPrintStmt(stmt *ast.PrintStmt) error {
 	p.startElement("PrintStmt")
 	stmt.Expr.Accept(p)

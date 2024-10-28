@@ -87,6 +87,66 @@ func (r *Resolver) visitField(kind string, field *ast.Field) error {
 	return nil
 }
 
+func (r *Resolver) VisitEllipsis(expr *ast.Ellipsis) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitFuncLit(lit *ast.FuncLit) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitCompositeLit(lit *ast.CompositeLit) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitSelectorExpr(expr *ast.SelectorExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitIndexExpr(expr *ast.IndexExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitSliceExpr(expr *ast.SliceExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitKeyValueExpr(expr *ast.KeyValueExpr) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitSliceType(expr *ast.SliceType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitStructType(expr *ast.StructType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitInterfaceType(expr *ast.InterfaceType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitMapType(expr *ast.MapType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitFuncType(expr *ast.FuncType) (*types.Object, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (r *Resolver) VisitIdent(expr *ast.Ident) (*types.Object, error) {
 	if sym, ok := r.symbolDeclared(expr.Name.Lexeme); ok {
 		return sym, nil
@@ -221,6 +281,36 @@ func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Object, error) {
 
 func (r *Resolver) VisitParenExpr(expr *ast.ParenExpr) (*types.Object, error) {
 	return expr.X.Accept(r)
+}
+
+func (r *Resolver) VisitDeferStmt(stmt *ast.DeferStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitSwitchStmt(stmt *ast.SwitchStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitCaseClause(stmt *ast.CaseClause) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitForRangeStmt(stmt *ast.ForRangeStmt) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitConstDecl(stmt *ast.ConstDecl) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Resolver) VisitTypeDecl(stmt *ast.TypeDecl) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (r *Resolver) VisitPrintStmt(stmt *ast.PrintStmt) error {
