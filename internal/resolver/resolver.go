@@ -110,7 +110,7 @@ func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Object, error) 
 		return nil, err
 	}
 
-	var typ types.Kind
+	typ := types.Invalid
 
 	if left.Type == types.String && right.Type == types.String {
 		typ = types.String
@@ -143,6 +143,10 @@ func (r *Resolver) VisitBinaryExpr(expr *ast.BinaryExpr) (*types.Object, error) 
 		case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
 			return &types.Object{Type: typ}, nil
 		}
+	}
+
+	if typ == types.Invalid {
+		return nil, resolveErrorf("binary operands must have equivalent types")
 	}
 
 	switch expr.Op.Kind {
@@ -194,6 +198,11 @@ func (r *Resolver) VisitCallExpr(expr *ast.CallExpr) (*types.Object, error) {
 		}
 
 		fnDecl := sym.Value.(*ast.FuncDecl)
+
+		if len(fnDecl.Params) != len(expr.Args) {
+			return nil, resolveErrorf("expected %d arguments, got %d", len(fnDecl.Params), len(expr.Args))
+		}
+
 		retType := types.Invalid
 		if fnDecl.Result != nil {
 			retType = types.FromLexeme(fnDecl.Result.Type.Lexeme)

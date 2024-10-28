@@ -79,30 +79,74 @@ func NewBasic(value any) *Object {
 	}
 }
 
-func (v *Object) Inc() error {
-	switch val := v.Value.(type) {
+func (o *Object) IsNumeric() bool {
+	return o.Type.IsNumeric()
+}
+
+func (o *Object) IsInteger() bool {
+	return o.Type == Int
+}
+
+func (o *Object) IsString() bool {
+	return o.Type == String
+}
+
+func (o *Object) IsBool() bool {
+	return o.Type == Bool
+}
+
+func (o *Object) Inc() error {
+	switch val := o.Value.(type) {
 	case int:
 		val++
-		v.Value = val
+		o.Value = val
 	case float64:
 		val++
-		v.Value = val
+		o.Value = val
 	default:
 		return fmt.Errorf("incrementing non-numeric type")
 	}
 	return nil
 }
 
-func (v *Object) Dec() error {
-	switch val := v.Value.(type) {
+func (o *Object) Dec() error {
+	switch val := o.Value.(type) {
 	case int:
 		val--
-		v.Value = val
+		o.Value = val
 	case float64:
 		val--
-		v.Value = val
+		o.Value = val
 	default:
 		return fmt.Errorf("decrementing non-numeric type")
 	}
 	return nil
+}
+
+func (o *Object) Int() int {
+	if f, ok := o.Value.(float64); ok {
+		return int(f)
+	}
+
+	return o.Value.(int)
+}
+
+func (o *Object) Float() float64 {
+	if i, ok := o.Value.(int); ok {
+		return float64(i)
+	}
+
+	return o.Value.(float64)
+}
+
+func (o *Object) Char() rune {
+	return o.Value.(rune)
+}
+
+func (o *Object) Str() string {
+	return o.Value.(string)
+}
+
+func (o *Object) Bool() bool {
+	return o.Value.(bool)
 }
