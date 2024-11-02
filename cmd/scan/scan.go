@@ -24,7 +24,7 @@ func main() {
 			break
 		}
 		s := &scanner.Scanner{}
-		s.Init([]byte(text))
+		s.Init(text)
 		toks, err := s.Scan()
 		if err != nil {
 			var scanError *scanner.ScanError

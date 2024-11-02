@@ -12,7 +12,7 @@ type Parser struct {
 	pos  int
 }
 
-func (p *Parser) Init(src []byte) error {
+func (p *Parser) Init(src string) error {
 	s := &scanner.Scanner{}
 	s.Init(src)
 	toks, err := s.Scan()

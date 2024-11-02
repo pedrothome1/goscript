@@ -8,7 +8,7 @@ import (
 )
 
 type Scanner struct {
-	src   string
+	src   []rune
 	start int
 	pos   int
 	line  int
@@ -16,8 +16,8 @@ type Scanner struct {
 	toks  []token.Token
 }
 
-func (s *Scanner) Init(src []byte) {
-	s.src = string(src)
+func (s *Scanner) Init(src string) {
+	s.src = []rune(src)
 	s.start = 0
 	s.pos = 0
 	s.line = 1
@@ -177,7 +177,7 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 }
 
 func (s *Scanner) addToken(kind token.Kind, lit any) {
-	s.toks = append(s.toks, token.Token{kind, lit, s.src[s.start:s.pos], s.line, s.col - (s.pos - s.start) + 1})
+	s.toks = append(s.toks, token.Token{kind, lit, string(s.src[s.start:s.pos]), s.line, s.col - (s.pos - s.start) + 1})
 }
 
 func (s *Scanner) addNumber() error {
@@ -189,7 +189,7 @@ func (s *Scanner) addNumber() error {
 			for s.isDigit(s.peek()) {
 				s.advance()
 			}
-			num, err := strconv.ParseFloat(s.src[s.start:s.pos], 64)
+			num, err := strconv.ParseFloat(string(s.src[s.start:s.pos]), 64)
 			if err != nil {
 				return err
 			}
@@ -197,7 +197,7 @@ func (s *Scanner) addNumber() error {
 			return nil
 		}
 	}
-	num, err := strconv.Atoi(s.src[s.start:s.pos])
+	num, err := strconv.Atoi(string(s.src[s.start:s.pos]))
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (s *Scanner) addIdentifier() error {
 	for s.isAlphaNumeric(s.peek()) {
 		s.advance()
 	}
-	if t, ok := token.Keyword(s.src[s.start:s.pos]); ok {
+	if t, ok := token.Keyword(string(s.src[s.start:s.pos])); ok {
 		s.addToken(t.Kind, t.Lit)
 		return nil
 	}
@@ -263,7 +263,7 @@ func (s *Scanner) addChar() error {
 }
 
 func (s *Scanner) addString() error {
-	var b []byte
+	var b []rune
 	for s.peek() != '"' && !s.atEnd() {
 		if s.peek() == '\n' {
 			return fmt.Errorf("string literal with newline")
@@ -310,7 +310,7 @@ func (s *Scanner) addString() error {
 }
 
 func (s *Scanner) addRawString() error {
-	var b []byte
+	var b []rune
 	for s.peek() != '`' && !s.atEnd() {
 		if s.peek() != '\r' {
 			b = append(b, s.peek())
@@ -341,7 +341,7 @@ func (s *Scanner) atEnd() bool {
 	return s.pos >= len(s.src)
 }
 
-func (s *Scanner) advance() byte {
+func (s *Scanner) advance() rune {
 	if s.atEnd() {
 		return '\x00'
 	}
@@ -351,33 +351,33 @@ func (s *Scanner) advance() byte {
 	return ch
 }
 
-func (s *Scanner) peek() byte {
+func (s *Scanner) peek() rune {
 	if s.atEnd() {
 		return '\x00'
 	}
 	return s.src[s.pos]
 }
 
-func (s *Scanner) peekNext() byte {
+func (s *Scanner) peekNext() rune {
 	if s.pos+1 >= len(s.src) {
 		return '\x00'
 	}
 	return s.src[s.pos+1]
 }
 
-func (s *Scanner) isDigit(c byte) bool {
+func (s *Scanner) isDigit(c rune) bool {
 	return c >= '0' && c <= '9'
 }
 
-func (s *Scanner) isAlpha(c byte) bool {
+func (s *Scanner) isAlpha(c rune) bool {
 	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_'
 }
 
-func (s *Scanner) isAlphaNumeric(c byte) bool {
+func (s *Scanner) isAlphaNumeric(c rune) bool {
 	return s.isAlpha(c) || s.isDigit(c)
 }
 
-func (s *Scanner) scanError(ch byte) *ScanError {
+func (s *Scanner) scanError(ch rune) *ScanError {
 	ln := 1
 	i := 0
 	for ; ln < s.line; i++ {
@@ -386,7 +386,7 @@ func (s *Scanner) scanError(ch byte) *ScanError {
 		}
 	}
 
-	lineStr := s.src[i:s.pos]
+	lineStr := string(s.src[i:s.pos])
 
 	var sb strings.Builder
 

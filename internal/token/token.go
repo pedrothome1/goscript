@@ -1,6 +1,10 @@
 package token
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 type Kind int
 
@@ -207,5 +211,20 @@ type Token struct {
 }
 
 func (t *Token) String() string {
-	return fmt.Sprintf("%s(%v)", kinds[t.Kind], t.Lit)
+	switch lv := t.Lit.(type) {
+	case string, rune:
+		return fmt.Sprintf("%s(%q)", kinds[t.Kind], lv)
+	case float64:
+		s := strconv.FormatFloat(lv, 'f', -1, 64)
+		if !strings.Contains(s, ".") {
+			s += ".0"
+		}
+		return fmt.Sprintf("%s(%s)", kinds[t.Kind], s)
+	default:
+		v := lv
+		if v == nil {
+			v = t.Lexeme
+		}
+		return fmt.Sprintf("%s(%v)", kinds[t.Kind], v)
+	}
 }

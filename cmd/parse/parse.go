@@ -28,7 +28,7 @@ func main() {
 			break
 		}
 		p := &parser.Parser{}
-		err := p.Init([]byte(text))
+		err := p.Init(text)
 		if err != nil {
 			var scanErr *scanner.ScanError
 			if errors.As(err, &scanErr) {
