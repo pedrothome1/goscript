@@ -151,11 +151,12 @@ func (p *Parser) funcDecl() (ast.Stmt, error) {
 		if p.peek().Kind != token.IDENT {
 			return nil, fmt.Errorf("expected parameter name")
 		}
-		f.Name = p.advance()
-		if p.peek().Kind != token.IDENT {
-			return nil, fmt.Errorf("expected parameter type")
+		f.Name = &ast.Ident{Name: p.advance()}
+		typ, err := p.expression()
+		if err != nil {
+			return nil, err
 		}
-		f.Type = p.advance()
+		f.Type = typ
 		if p.peek().Kind == token.COMMA {
 			p.advance()
 		}
@@ -169,11 +170,12 @@ func (p *Parser) funcDecl() (ast.Stmt, error) {
 	}
 	p.advance()
 	var result *ast.Field
-	if p.peek().Kind == token.IDENT {
-		result = &ast.Field{
-			Name: token.Token{Line: -1},
-			Type: p.advance(),
+	if p.peek().Kind != token.LBRACE {
+		typ, err := p.expression()
+		if err != nil {
+			return nil, err
 		}
+		result = &ast.Field{Type: typ}
 	}
 	if p.peek().Kind != token.LBRACE {
 		return nil, fmt.Errorf("'{' expected for the function declaration body")

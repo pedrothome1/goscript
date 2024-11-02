@@ -307,6 +307,6 @@ func (s *TypeDecl) Accept(v StmtVisitor) error     { return v.VisitTypeDecl(s) }
 func (s *TypeDecl) stmtNode()                      {}
 
 type Field struct {
-	Name token.Token
-	Type token.Token
+	Name *Ident
+	Type Expr
 }
