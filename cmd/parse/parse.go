@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/parser"
 	"github.com/pedrothome1/goscript/internal/printer"
 	"github.com/pedrothome1/goscript/internal/scanner"
@@ -16,6 +15,8 @@ func main() {
 	log.SetFlags(0)
 	sc := bufio.NewScanner(os.Stdin)
 	sc.Split(bufio.ScanLines)
+
+	pr := &printer.Printer{}
 
 	for {
 		fmt.Print(">> ")
@@ -44,15 +45,9 @@ func main() {
 			continue
 		}
 
-		if len(stmts) > 0 {
-			first := stmts[0]
-			if es, ok := first.(*ast.ExprStmt); ok {
-				pr := &printer.Printer{}
-				fmt.Print(pr.Stringify(es.Expr))
-				continue
-			}
+		for _, stmt := range stmts {
+			fmt.Print(pr.StmtString(stmt))
+			fmt.Println()
 		}
-
-		log.Println("couldn't print the expression")
 	}
 }

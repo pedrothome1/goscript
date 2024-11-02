@@ -2,28 +2,27 @@ package ast
 
 import (
 	"github.com/pedrothome1/goscript/internal/token"
-	"github.com/pedrothome1/goscript/internal/types"
 )
 
 type ExprVisitor interface {
-	VisitIdent(expr *Ident) (*types.Object, error)
-	VisitEllipsis(expr *Ellipsis) (*types.Object, error)
-	VisitBasicLit(lit *BasicLit) (*types.Object, error)
-	VisitFuncLit(lit *FuncLit) (*types.Object, error)
-	VisitCompositeLit(lit *CompositeLit) (*types.Object, error)
-	VisitBinaryExpr(expr *BinaryExpr) (*types.Object, error)
-	VisitUnaryExpr(expr *UnaryExpr) (*types.Object, error)
-	VisitCallExpr(expr *CallExpr) (*types.Object, error)
-	VisitParenExpr(expr *ParenExpr) (*types.Object, error)
-	VisitSelectorExpr(expr *SelectorExpr) (*types.Object, error)
-	VisitIndexExpr(expr *IndexExpr) (*types.Object, error)
-	VisitSliceExpr(expr *SliceExpr) (*types.Object, error)
-	VisitKeyValueExpr(expr *KeyValueExpr) (*types.Object, error)
-	VisitSliceType(expr *SliceType) (*types.Object, error)
-	VisitStructType(expr *StructType) (*types.Object, error)
-	VisitInterfaceType(expr *InterfaceType) (*types.Object, error)
-	VisitMapType(expr *MapType) (*types.Object, error)
-	VisitFuncType(expr *FuncType) (*types.Object, error)
+	VisitIdent(expr *Ident) (any, error)
+	VisitEllipsis(expr *Ellipsis) (any, error)
+	VisitBasicLit(lit *BasicLit) (any, error)
+	VisitFuncLit(lit *FuncLit) (any, error)
+	VisitCompositeLit(lit *CompositeLit) (any, error)
+	VisitBinaryExpr(expr *BinaryExpr) (any, error)
+	VisitUnaryExpr(expr *UnaryExpr) (any, error)
+	VisitCallExpr(expr *CallExpr) (any, error)
+	VisitParenExpr(expr *ParenExpr) (any, error)
+	VisitSelectorExpr(expr *SelectorExpr) (any, error)
+	VisitIndexExpr(expr *IndexExpr) (any, error)
+	VisitSliceExpr(expr *SliceExpr) (any, error)
+	VisitKeyValueExpr(expr *KeyValueExpr) (any, error)
+	VisitSliceType(expr *SliceType) (any, error)
+	VisitStructType(expr *StructType) (any, error)
+	VisitInterfaceType(expr *InterfaceType) (any, error)
+	VisitMapType(expr *MapType) (any, error)
+	VisitFuncType(expr *FuncType) (any, error)
 }
 
 type StmtVisitor interface {
@@ -48,7 +47,7 @@ type StmtVisitor interface {
 
 // --- expressions ---
 type Expr interface {
-	Accept(v ExprVisitor) (*types.Object, error)
+	Accept(v ExprVisitor) (any, error)
 	exprNode()
 }
 
@@ -137,42 +136,42 @@ type FuncType struct {
 	Result *Field
 }
 
-func (e *Ident) Accept(v ExprVisitor) (*types.Object, error)         { return v.VisitIdent(e) }
-func (e *Ident) exprNode()                                           {}
-func (e *Ellipsis) Accept(v ExprVisitor) (*types.Object, error)      { return v.VisitEllipsis(e) }
-func (e *Ellipsis) exprNode()                                        {}
-func (e *BasicLit) Accept(v ExprVisitor) (*types.Object, error)      { return v.VisitBasicLit(e) }
-func (e *BasicLit) exprNode()                                        {}
-func (e *FuncLit) Accept(v ExprVisitor) (*types.Object, error)       { return v.VisitFuncLit(e) }
-func (e *FuncLit) exprNode()                                         {}
-func (e *CompositeLit) Accept(v ExprVisitor) (*types.Object, error)  { return v.VisitCompositeLit(e) }
-func (e *CompositeLit) exprNode()                                    {}
-func (e *BinaryExpr) Accept(v ExprVisitor) (*types.Object, error)    { return v.VisitBinaryExpr(e) }
-func (e *BinaryExpr) exprNode()                                      {}
-func (e *UnaryExpr) Accept(v ExprVisitor) (*types.Object, error)     { return v.VisitUnaryExpr(e) }
-func (e *UnaryExpr) exprNode()                                       {}
-func (e *CallExpr) Accept(v ExprVisitor) (*types.Object, error)      { return v.VisitCallExpr(e) }
-func (e *CallExpr) exprNode()                                        {}
-func (e *ParenExpr) Accept(v ExprVisitor) (*types.Object, error)     { return v.VisitParenExpr(e) }
-func (e *ParenExpr) exprNode()                                       {}
-func (e *SelectorExpr) Accept(v ExprVisitor) (*types.Object, error)  { return v.VisitSelectorExpr(e) }
-func (e *SelectorExpr) exprNode()                                    {}
-func (e *IndexExpr) Accept(v ExprVisitor) (*types.Object, error)     { return v.VisitIndexExpr(e) }
-func (e *IndexExpr) exprNode()                                       {}
-func (e *SliceExpr) Accept(v ExprVisitor) (*types.Object, error)     { return v.VisitSliceExpr(e) }
-func (e *SliceExpr) exprNode()                                       {}
-func (e *KeyValueExpr) Accept(v ExprVisitor) (*types.Object, error)  { return v.VisitKeyValueExpr(e) }
-func (e *KeyValueExpr) exprNode()                                    {}
-func (e *SliceType) Accept(v ExprVisitor) (*types.Object, error)     { return v.VisitSliceType(e) }
-func (e *SliceType) exprNode()                                       {}
-func (e *StructType) Accept(v ExprVisitor) (*types.Object, error)    { return v.VisitStructType(e) }
-func (e *StructType) exprNode()                                      {}
-func (e *InterfaceType) Accept(v ExprVisitor) (*types.Object, error) { return v.VisitInterfaceType(e) }
-func (e *InterfaceType) exprNode()                                   {}
-func (e *MapType) Accept(v ExprVisitor) (*types.Object, error)       { return v.VisitMapType(e) }
-func (e *MapType) exprNode()                                         {}
-func (e *FuncType) Accept(v ExprVisitor) (*types.Object, error)      { return v.VisitFuncType(e) }
-func (e *FuncType) exprNode()                                        {}
+func (e *Ident) Accept(v ExprVisitor) (any, error)         { return v.VisitIdent(e) }
+func (e *Ident) exprNode()                                 {}
+func (e *Ellipsis) Accept(v ExprVisitor) (any, error)      { return v.VisitEllipsis(e) }
+func (e *Ellipsis) exprNode()                              {}
+func (e *BasicLit) Accept(v ExprVisitor) (any, error)      { return v.VisitBasicLit(e) }
+func (e *BasicLit) exprNode()                              {}
+func (e *FuncLit) Accept(v ExprVisitor) (any, error)       { return v.VisitFuncLit(e) }
+func (e *FuncLit) exprNode()                               {}
+func (e *CompositeLit) Accept(v ExprVisitor) (any, error)  { return v.VisitCompositeLit(e) }
+func (e *CompositeLit) exprNode()                          {}
+func (e *BinaryExpr) Accept(v ExprVisitor) (any, error)    { return v.VisitBinaryExpr(e) }
+func (e *BinaryExpr) exprNode()                            {}
+func (e *UnaryExpr) Accept(v ExprVisitor) (any, error)     { return v.VisitUnaryExpr(e) }
+func (e *UnaryExpr) exprNode()                             {}
+func (e *CallExpr) Accept(v ExprVisitor) (any, error)      { return v.VisitCallExpr(e) }
+func (e *CallExpr) exprNode()                              {}
+func (e *ParenExpr) Accept(v ExprVisitor) (any, error)     { return v.VisitParenExpr(e) }
+func (e *ParenExpr) exprNode()                             {}
+func (e *SelectorExpr) Accept(v ExprVisitor) (any, error)  { return v.VisitSelectorExpr(e) }
+func (e *SelectorExpr) exprNode()                          {}
+func (e *IndexExpr) Accept(v ExprVisitor) (any, error)     { return v.VisitIndexExpr(e) }
+func (e *IndexExpr) exprNode()                             {}
+func (e *SliceExpr) Accept(v ExprVisitor) (any, error)     { return v.VisitSliceExpr(e) }
+func (e *SliceExpr) exprNode()                             {}
+func (e *KeyValueExpr) Accept(v ExprVisitor) (any, error)  { return v.VisitKeyValueExpr(e) }
+func (e *KeyValueExpr) exprNode()                          {}
+func (e *SliceType) Accept(v ExprVisitor) (any, error)     { return v.VisitSliceType(e) }
+func (e *SliceType) exprNode()                             {}
+func (e *StructType) Accept(v ExprVisitor) (any, error)    { return v.VisitStructType(e) }
+func (e *StructType) exprNode()                            {}
+func (e *InterfaceType) Accept(v ExprVisitor) (any, error) { return v.VisitInterfaceType(e) }
+func (e *InterfaceType) exprNode()                         {}
+func (e *MapType) Accept(v ExprVisitor) (any, error)       { return v.VisitMapType(e) }
+func (e *MapType) exprNode()                               {}
+func (e *FuncType) Accept(v ExprVisitor) (any, error)      { return v.VisitFuncType(e) }
+func (e *FuncType) exprNode()                              {}
 
 // --- statements ---
 type Stmt interface {
