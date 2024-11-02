@@ -8,6 +8,8 @@ import (
 
 type Kind int
 
+//go:generate stringer -type Kind
+
 const (
 	ILLEGAL Kind = iota
 	EOF
@@ -91,82 +93,6 @@ const (
 	NIL
 )
 
-func (k Kind) String() string {
-	return kinds[k]
-}
-
-var kinds = map[Kind]string{
-	ILLEGAL:     "ILLEGAL",
-	EOF:         "EOF",
-	IDENT:       "IDENT",
-	FLOAT:       "FLOAT",
-	INT:         "INT",
-	STRING:      "STRING",
-	CHAR:        "CHAR",
-	BOOL:        "BOOL",
-	ADD:         "ADD",
-	SUB:         "SUB",
-	MUL:         "MUL",
-	QUO:         "QUO",
-	REM:         "REM",
-	AND:         "AND",
-	OR:          "OR",
-	XOR:         "XOR",
-	SHL:         "SHL",
-	SHR:         "SHR",
-	AND_NOT:     "AND_NOT",
-	LAND:        "LAND",
-	LOR:         "LOR",
-	ARROW:       "ARROW",
-	INC:         "INC",
-	DEC:         "DEC",
-	EQL:         "EQL",
-	NEQ:         "NEQ",
-	LSS:         "LSS",
-	GTR:         "GTR",
-	LEQ:         "LEQ",
-	GEQ:         "GEQ",
-	NOT:         "NOT",
-	ASSIGN:      "ASSIGN",
-	DEFINE:      "DEFINE",
-	LPAREN:      "LPAREN",
-	RPAREN:      "RPAREN",
-	LBRACK:      "LBRACK",
-	RBRACK:      "RBRACK",
-	LBRACE:      "LBRACE",
-	RBRACE:      "RBRACE",
-	SEMICOLON:   "SEMICOLON",
-	COLON:       "COLON",
-	COMMA:       "COMMA",
-	PERIOD:      "PERIOD",
-	ELLIPSIS:    "ELLIPSIS",
-	BREAK:       "BREAK",
-	CASE:        "CASE",
-	CHAN:        "CHAN",
-	CONST:       "CONST",
-	CONTINUE:    "CONTINUE",
-	DEFAULT:     "DEFAULT",
-	DEFER:       "DEFER",
-	ELSE:        "ELSE",
-	FALLTHROUGH: "FALLTHROUGH",
-	FOR:         "FOR",
-	FUNC:        "FUNC",
-	GO:          "GO",
-	GOTO:        "GOTO",
-	IF:          "IF",
-	IMPORT:      "IMPORT",
-	INTERFACE:   "INTERFACE",
-	MAP:         "MAP",
-	RANGE:       "RANGE",
-	RETURN:      "RETURN",
-	STRUCT:      "STRUCT",
-	SWITCH:      "SWITCH",
-	TYPE:        "TYPE",
-	VAR:         "VAR",
-	PRINT:       "PRINT",
-	NIL:         "NIL",
-}
-
 func Keyword(s string) (Token, bool) {
 	t, ok := keywords[s]
 	return t, ok
@@ -213,18 +139,18 @@ type Token struct {
 func (t *Token) String() string {
 	switch lv := t.Lit.(type) {
 	case string, rune:
-		return fmt.Sprintf("%s(%q)", kinds[t.Kind], lv)
+		return fmt.Sprintf("%s(%q)", t.Kind.String(), lv)
 	case float64:
 		s := strconv.FormatFloat(lv, 'f', -1, 64)
 		if !strings.Contains(s, ".") {
 			s += ".0"
 		}
-		return fmt.Sprintf("%s(%s)", kinds[t.Kind], s)
+		return fmt.Sprintf("%s(%s)", t.Kind.String(), s)
 	default:
 		v := lv
 		if v == nil {
 			v = t.Lexeme
 		}
-		return fmt.Sprintf("%s(%v)", kinds[t.Kind], v)
+		return fmt.Sprintf("%s(%v)", t.Kind.String(), v)
 	}
 }
