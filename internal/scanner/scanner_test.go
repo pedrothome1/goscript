@@ -11,7 +11,7 @@ func TestScanner_Scan(t *testing.T) {
 	// print tokens
 	src := "(3 + 4) * 5"
 	s := &scanner.Scanner{}
-	s.Init([]byte(src))
+	s.Init(src)
 
 	toks, err := s.Scan()
 	if err != nil {
@@ -32,7 +32,7 @@ var b2 = 2
 `
 
 	s := &scanner.Scanner{}
-	s.Init([]byte(src))
+	s.Init(src)
 
 	toks, err := s.Scan()
 	if err != nil {
@@ -52,7 +52,7 @@ var b $= 2
 `
 
 	s := &scanner.Scanner{}
-	s.Init([]byte(src))
+	s.Init(src)
 
 	var scanErr *scanner.ScanError
 	_, err := s.Scan()
