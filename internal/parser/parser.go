@@ -114,7 +114,7 @@ func (p *Parser) varDecl() (ast.Stmt, error) {
 	if p.peek().Kind != token.IDENT {
 		return nil, fmt.Errorf("variable name expected")
 	}
-	name := p.advance()
+	name := &ast.Ident{Name: p.advance()}
 	if p.peek().Kind != token.ASSIGN {
 		return nil, fmt.Errorf("assignment operator expected")
 	}
@@ -139,7 +139,7 @@ func (p *Parser) funcDecl() (ast.Stmt, error) {
 	if p.peek().Kind != token.IDENT {
 		return nil, fmt.Errorf("function name expected")
 	}
-	name := p.advance()
+	name := &ast.Ident{Name: p.advance()}
 	if p.peek().Kind != token.LPAREN {
 		return nil, fmt.Errorf("'(' expected after function name")
 	}
@@ -247,7 +247,7 @@ func (p *Parser) printStmt() (ast.Stmt, error) {
 }
 
 func (p *Parser) assignStmt() (ast.Stmt, error) {
-	ident := p.advance()
+	ident := &ast.Ident{Name: p.advance()}
 	p.advance() // consume '='
 	expr, err := p.expression()
 	if err != nil {
@@ -261,7 +261,7 @@ func (p *Parser) assignStmt() (ast.Stmt, error) {
 }
 
 func (p *Parser) shortVarDecl() (ast.Stmt, error) {
-	ident := p.advance()
+	ident := &ast.Ident{Name: p.advance()}
 	p.advance() // consume ':='
 	expr, err := p.expression()
 	if err != nil {

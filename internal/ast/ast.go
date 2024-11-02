@@ -192,7 +192,7 @@ type IncDecStmt struct {
 }
 
 type AssignStmt struct {
-	Name  token.Token
+	Name  Expr
 	Value Expr
 }
 
@@ -212,19 +212,19 @@ type CaseClause struct {
 }
 
 type VarDecl struct {
-	Name  token.Token
+	Name  Expr
 	Type  Expr
 	Value Expr
 }
 
 type ConstDecl struct {
-	Name  token.Token
+	Name  Expr
 	Type  Expr
 	Value Expr
 }
 
 type FuncDecl struct {
-	Name   token.Token
+	Name   *Ident
 	Params []*Field
 	Result *Field
 	Body   []Stmt
