@@ -151,6 +151,12 @@ func NewIdent(id string) Token {
 	}
 }
 
+func NewIllegal() Token {
+	return Token{
+		Kind: ILLEGAL,
+	}
+}
+
 func (t Token) String() string {
 	switch lv := t.Lit.(type) {
 	case string, rune:

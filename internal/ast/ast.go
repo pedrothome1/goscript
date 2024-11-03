@@ -140,7 +140,7 @@ type MapType struct {
 
 type FuncType struct {
 	Params []*Field
-	Result *Field
+	Result []*Field
 }
 
 // --- statements ---
@@ -226,7 +226,7 @@ type ConstDecl struct {
 type FuncDecl struct {
 	Name   *Ident
 	Params []*Field
-	Result *Field
+	Result []*Field
 	Body   []Stmt
 }
 
@@ -236,6 +236,7 @@ type TypeDecl struct {
 }
 
 type Field struct {
-	Name *Ident
-	Type Expr
+	Name  *Ident
+	Names []*Ident
+	Type  Expr
 }

@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/pedrothome1/goscript/internal/ast"
 	"github.com/pedrothome1/goscript/internal/scanner"
 	"github.com/pedrothome1/goscript/internal/token"
@@ -114,11 +113,11 @@ func (p *Parser) declaration() (ast.Stmt, error) {
 func (p *Parser) varDecl() (ast.Stmt, error) {
 	p.advance()
 	if p.peek().Kind != token.IDENT {
-		return nil, fmt.Errorf("variable name expected")
+		return nil, parseErrorf("variable name expected")
 	}
 	name := &ast.Ident{Name: p.advance()}
 	if p.peek().Kind != token.ASSIGN {
-		return nil, fmt.Errorf("assignment operator expected")
+		return nil, parseErrorf("assignment operator expected")
 	}
 	p.advance()
 	expr, err := p.expression()
@@ -126,7 +125,7 @@ func (p *Parser) varDecl() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after variable declaration")
+		return nil, parseErrorf("';' expected after variable declaration")
 	}
 	p.advance()
 	return &ast.VarDecl{
@@ -138,49 +137,26 @@ func (p *Parser) varDecl() (ast.Stmt, error) {
 
 func (p *Parser) funcDecl() (ast.Stmt, error) {
 	p.advance()
-	if p.peek().Kind != token.IDENT {
-		return nil, fmt.Errorf("function name expected")
+	if !p.match(token.IDENT) {
+		return nil, parseErrorf("function name expected")
 	}
-	name := &ast.Ident{Name: p.advance()}
-	if p.peek().Kind != token.LPAREN {
-		return nil, fmt.Errorf("'(' expected after function name")
+	name := &ast.Ident{Name: p.previous()}
+	if !p.match(token.LPAREN) {
+		return nil, parseErrorf("'(' expected after function name")
 	}
-	p.advance()
-	var params []*ast.Field
-	for p.peek().Kind != token.RPAREN && !p.atEnd() {
-		// <ident> <type>
-		var f ast.Field
-		if p.peek().Kind != token.IDENT {
-			return nil, fmt.Errorf("expected parameter name")
-		}
-		f.Name = &ast.Ident{Name: p.advance()}
-		typ, err := p.expression()
-		if err != nil {
-			return nil, err
-		}
-		f.Type = typ
-		if p.peek().Kind == token.COMMA {
-			p.advance()
-		}
-		params = append(params, &f)
-		if len(params) > 255 {
-			return nil, fmt.Errorf("can't have more than 255 parameters")
-		}
+	params, err := p.fieldsSignature(true)
+	if err != nil {
+		return nil, err
 	}
-	if p.peek().Kind != token.RPAREN {
-		return nil, fmt.Errorf("')' expected at the end of parameter list")
+	if !p.match(token.RPAREN) {
+		return nil, parseErrorf("')' expected at the end of parameter list")
 	}
-	p.advance()
-	var result *ast.Field
-	if p.peek().Kind != token.LBRACE {
-		typ, err := p.expression()
-		if err != nil {
-			return nil, err
-		}
-		result = &ast.Field{Type: typ}
+	result, err := p.funcResult()
+	if err != nil {
+		return nil, err
 	}
 	if p.peek().Kind != token.LBRACE {
-		return nil, fmt.Errorf("'{' expected for the function declaration body")
+		return nil, parseErrorf("'{' expected for the function declaration body")
 	}
 	blockStmt, err := p.blockStmt()
 	if err != nil {
@@ -242,7 +218,7 @@ func (p *Parser) printStmt() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after print statement")
+		return nil, parseErrorf("';' expected after print statement")
 	}
 	p.advance()
 	return &ast.PrintStmt{Expr: expr}, nil
@@ -256,7 +232,7 @@ func (p *Parser) assignStmt() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after assignment statement")
+		return nil, parseErrorf("';' expected after assignment statement")
 	}
 	p.advance()
 	return &ast.AssignStmt{Name: ident, Value: expr}, nil
@@ -270,7 +246,7 @@ func (p *Parser) shortVarDecl() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after short variable declaration")
+		return nil, parseErrorf("';' expected after short variable declaration")
 	}
 	p.advance()
 	return &ast.VarDecl{
@@ -296,7 +272,7 @@ func (p *Parser) ifStmt() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.LBRACE {
-		return nil, fmt.Errorf("'{' expected after if statement expression")
+		return nil, parseErrorf("'{' expected after if statement expression")
 	}
 	block, err := p.blockStmt()
 	if err != nil {
@@ -332,7 +308,7 @@ func (p *Parser) ifStmt() (ast.Stmt, error) {
 			Else: elseStmt,
 		}, nil
 	}
-	return nil, fmt.Errorf("unexpected token %q after 'else'", p.peek().Lexeme)
+	return nil, parseErrorf("unexpected token %q after 'else'", p.peek().Lexeme)
 }
 
 func (p *Parser) forStmt() (ast.Stmt, error) {
@@ -342,7 +318,7 @@ func (p *Parser) forStmt() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.LBRACE {
-		return nil, fmt.Errorf("'{' expected for 'for' loop body")
+		return nil, parseErrorf("'{' expected for 'for' loop body")
 	}
 	body, err := p.blockStmt()
 	if err != nil {
@@ -359,7 +335,7 @@ func (p *Parser) forStmt() (ast.Stmt, error) {
 func (p *Parser) breakStmt() (ast.Stmt, error) {
 	branchTok := p.advance()
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after %q statement", branchTok.Lexeme)
+		return nil, parseErrorf("';' expected after %q statement", branchTok.Lexeme)
 	}
 	p.advance()
 	return &ast.BranchStmt{
@@ -372,7 +348,7 @@ func (p *Parser) breakStmt() (ast.Stmt, error) {
 func (p *Parser) continueStmt() (ast.Stmt, error) {
 	branchTok := p.advance()
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after %q statement", branchTok.Lexeme)
+		return nil, parseErrorf("';' expected after %q statement", branchTok.Lexeme)
 	}
 	p.advance()
 	return &ast.BranchStmt{
@@ -392,7 +368,7 @@ func (p *Parser) returnStmt() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after 'return' statement")
+		return nil, parseErrorf("';' expected after 'return' statement")
 	}
 	p.advance()
 	return &ast.ReturnStmt{Result: result}, nil
@@ -405,7 +381,7 @@ func (p *Parser) incDecStmt() (ast.Stmt, error) {
 	}
 	tok := p.advance()
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after %q statement", tok.Lexeme)
+		return nil, parseErrorf("';' expected after %q statement", tok.Lexeme)
 	}
 	p.advance()
 	return &ast.IncDecStmt{
@@ -420,7 +396,7 @@ func (p *Parser) expressionStmt() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, fmt.Errorf("';' expected after expression statement")
+		return nil, parseErrorf("';' expected after expression statement")
 	}
 	p.advance()
 	return &ast.ExprStmt{Expr: expr}, nil
@@ -437,7 +413,7 @@ func (p *Parser) block() ([]ast.Stmt, error) {
 		list = append(list, decl)
 	}
 	if p.peek().Kind != token.RBRACE {
-		return nil, fmt.Errorf("'}' expected after block")
+		return nil, parseErrorf("'}' expected after block")
 	}
 	if p.advance(); p.peek().Kind == token.SEMICOLON {
 		p.advance()
@@ -597,14 +573,14 @@ func (p *Parser) call() (ast.Expr, error) {
 			}
 			args = append(args, arg)
 			if len(args) > 255 {
-				return nil, fmt.Errorf("can't have more than 255 arguments")
+				return nil, parseErrorf("can't have more than 255 arguments")
 			}
 			if p.peek().Kind == token.COMMA {
 				p.advance()
 			}
 		}
 		if p.peek().Kind != token.RPAREN {
-			return nil, fmt.Errorf("')' expected in call expression")
+			return nil, parseErrorf("')' expected in call expression")
 		}
 		p.advance()
 		callee = &ast.CallExpr{
@@ -632,6 +608,9 @@ func (p *Parser) primary() (ast.Expr, error) {
 		return nil, err
 	}
 	if p.peek().Kind == token.LBRACE {
+		if ft, ok := typ.(*ast.FuncType); ok {
+			return p.funcLit(ft)
+		}
 		return p.compositeLit(typ)
 	}
 	if p.peek().Kind == token.LBRACK {
@@ -653,7 +632,10 @@ func (p *Parser) typeName() (ast.Expr, error) {
 	if p.peek().Kind == token.STRUCT {
 		return p.structType()
 	}
-	return nil, fmt.Errorf("invalid type at %s", p.peek().Pos())
+	if p.peek().Kind == token.FUNC {
+		return p.funcType()
+	}
+	return nil, parseErrorf("invalid type at %s %s", p.peek().String(), p.peek().Pos())
 }
 
 func (p *Parser) ident() (ast.Expr, error) {
@@ -668,7 +650,7 @@ func (p *Parser) selectorExpr() (ast.Expr, error) {
 	for p.peekNext().Kind == token.PERIOD {
 		p.advance() // consume IDENT
 		if t := p.peekNext(); t.Kind != token.IDENT {
-			return nil, fmt.Errorf("expected identifier after period, got %q at %s", t.Lexeme, t.Pos())
+			return nil, parseErrorf("expected identifier after period, got %q at %s", t.Lexeme, t.Pos())
 		}
 		p.advance() // consume PERIOD
 		x = &ast.SelectorExpr{
@@ -721,7 +703,7 @@ func (p *Parser) indexSliceExpr(typ ast.Expr) (ast.Expr, error) {
 			}
 		}
 		if p.peek().Kind != token.RBRACK {
-			return nil, fmt.Errorf("']' expected at %s", p.peek().Pos())
+			return nil, parseErrorf("']' expected at %s", p.peek().Pos())
 		}
 		p.advance()
 	}
@@ -740,7 +722,7 @@ func (p *Parser) sliceType() (ast.Expr, error) {
 
 func (p *Parser) mapType() (ast.Expr, error) {
 	if p.peekNext().Kind != token.LBRACK {
-		return nil, fmt.Errorf("'[' expected at %s for the map key type", p.peekNext().Pos())
+		return nil, parseErrorf("'[' expected at %s for the map key type", p.peekNext().Pos())
 	}
 	p.advance()
 	p.advance()
@@ -749,7 +731,7 @@ func (p *Parser) mapType() (ast.Expr, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.RBRACK {
-		return nil, fmt.Errorf("']' expected at %s for the map key type", p.peekNext().Pos())
+		return nil, parseErrorf("']' expected at %s for the map key type", p.peekNext().Pos())
 	}
 	p.advance()
 	valType, err := p.typeName()
@@ -764,7 +746,7 @@ func (p *Parser) mapType() (ast.Expr, error) {
 
 func (p *Parser) structType() (ast.Expr, error) {
 	if p.peekNext().Kind != token.LBRACE {
-		return nil, fmt.Errorf("'{' expected at %s for struct literal", p.peekNext().Pos())
+		return nil, parseErrorf("'{' expected at %s for struct literal", p.peekNext().Pos())
 	}
 	p.advance()
 	p.advance()
@@ -775,7 +757,7 @@ func (p *Parser) structType() (ast.Expr, error) {
 			return nil, err
 		}
 		if _, ok := name.(*ast.Ident); !ok {
-			return nil, fmt.Errorf("field name should be a valid identifier")
+			return nil, parseErrorf("field name should be a valid identifier")
 		}
 		typ, err := p.typeName()
 		if err != nil {
@@ -789,15 +771,120 @@ func (p *Parser) structType() (ast.Expr, error) {
 			break
 		}
 		if p.peek().Kind != token.SEMICOLON {
-			return nil, fmt.Errorf("';' expected at %s for struct literal field", p.peek().Pos())
+			return nil, parseErrorf("';' expected at %s for struct literal field", p.peek().Pos())
 		}
 		p.advance()
 	}
 	if p.peek().Kind != token.RBRACE {
-		return nil, fmt.Errorf("'}' expected at %s for struct literal", p.peek().Pos())
+		return nil, parseErrorf("'}' expected at %s for struct literal", p.peek().Pos())
 	}
 	p.advance()
 	return &ast.StructType{Fields: fields}, nil
+}
+
+func (p *Parser) funcType() (ast.Expr, error) {
+	p.advance()
+	if !p.match(token.LPAREN) {
+		return nil, parseErrorf("expected '(' after 'func'")
+	}
+	params, err := p.fieldsSignature(false)
+	if err != nil {
+		return nil, err
+	}
+	if !p.match(token.RPAREN) {
+		return nil, parseErrorf("expected ')' after parameter list")
+	}
+	result, err := p.funcResult()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.FuncType{
+		Params: params,
+		Result: result,
+	}, nil
+}
+
+func (p *Parser) funcResult() ([]*ast.Field, error) {
+	if p.match(token.LPAREN) {
+		results, err := p.fieldsSignature(false)
+		if err != nil {
+			return nil, err
+		}
+		if !p.match(token.RPAREN) {
+			return nil, parseErrorf("expected ')' after result list")
+		}
+		return results, nil
+	}
+	if p.peek().Kind == token.LBRACE {
+		return nil, nil
+	}
+	result, err := p.typeName()
+	if err != nil {
+		return nil, err
+	}
+	return []*ast.Field{{Type: result}}, nil
+}
+
+func (p *Parser) fieldsSignature(requireNames bool) ([]*ast.Field, error) {
+	if p.peek().Kind == token.RPAREN {
+		return nil, nil
+	}
+
+	var fields []*ast.Field
+
+	for {
+		var exprs []ast.Expr
+		for {
+			left, err := p.typeName()
+			if err != nil {
+				return nil, err
+			}
+			exprs = append(exprs, left)
+			if !p.match(token.COMMA) {
+				break
+			}
+		}
+		if p.peek().Kind == token.RPAREN {
+			if requireNames {
+				return nil, parseErrorf("parameter names are required")
+			}
+			for _, typ := range exprs {
+				fields = append(fields, &ast.Field{
+					Type: typ,
+				})
+			}
+			break
+		}
+		rightType, err := p.typeName()
+		if err != nil {
+			return nil, err
+		}
+		names := make([]*ast.Ident, 0, len(exprs))
+		for _, e := range exprs {
+			id, ok := e.(*ast.Ident)
+			if !ok {
+				return nil, parseErrorf("parameter name should be a valid identifier")
+			}
+			names = append(names, id)
+		}
+		fields = append(fields, &ast.Field{Names: names, Type: rightType})
+		if !p.match(token.COMMA) {
+			break
+		}
+	}
+
+	return fields, nil
+}
+
+func (p *Parser) funcLit(typ *ast.FuncType) (ast.Expr, error) {
+	body, err := p.block()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.FuncLit{
+		Type: typ,
+		Body: body,
+	}, nil
 }
 
 func (p *Parser) compositeLit(typ ast.Expr) (ast.Expr, error) {
@@ -825,12 +912,12 @@ func (p *Parser) compositeLit(typ ast.Expr) (ast.Expr, error) {
 			break
 		}
 		if p.peek().Kind != token.COMMA {
-			return nil, fmt.Errorf("',' expected between composite literal entries")
+			return nil, parseErrorf("',' expected between composite literal entries")
 		}
 		p.advance()
 	}
 	if p.peek().Kind != token.RBRACE {
-		return nil, fmt.Errorf("'}' expected at the end of composite literal")
+		return nil, parseErrorf("'}' expected at the end of composite literal")
 	}
 	p.advance()
 	return &ast.CompositeLit{
@@ -846,7 +933,7 @@ func (p *Parser) parenExpr() (ast.Expr, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.RPAREN {
-		return nil, fmt.Errorf("missing closing ')'")
+		return nil, parseErrorf("missing closing ')'")
 	}
 	p.advance()
 	return &ast.ParenExpr{X: expr}, nil
@@ -859,6 +946,21 @@ func (p *Parser) advance() token.Token {
 		p.pos++
 	}
 	return t
+}
+
+func (p *Parser) match(k token.Kind) bool {
+	if p.peek().Kind == k {
+		p.advance()
+		return true
+	}
+	return false
+}
+
+func (p *Parser) previous() token.Token {
+	if p.pos-1 >= 0 {
+		return p.toks[p.pos-1]
+	}
+	return token.NewIllegal()
 }
 
 func (p *Parser) peek() token.Token {
