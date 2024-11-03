@@ -62,6 +62,16 @@ type Ident struct {
 	Name token.Token
 }
 
+type SelectorExpr struct {
+	X   Expr
+	Sel *Ident
+}
+
+type CallExpr struct {
+	Callee Expr
+	Args   []Expr
+}
+
 type Ellipsis struct {
 	Elt Expr
 }
@@ -91,18 +101,8 @@ type UnaryExpr struct {
 	Right Expr
 }
 
-type CallExpr struct {
-	Callee Expr
-	Args   []Expr
-}
-
 type ParenExpr struct {
 	X Expr
-}
-
-type SelectorExpr struct {
-	X   Expr
-	Sel *Ident
 }
 
 type IndexExpr struct {

@@ -37,6 +37,7 @@ CHAR             -> "'" <any char except '\' and "'"> | <any ESC_SEQ except '\"'
 STRING           -> '"' ( <any char except '\' and '"' | <any ESC_SEQ except '\''> )* '"'
 BOOL             -> 'false' | 'true'
 NIL              -> 'nil'
+BASIC_LIT        -> FLOAT | INT | CHAR | STRING | BOOL | NIL
 ALPHA            -> 'A' ... 'Z' | 'a' ... 'z' | '_'
 DIGIT            -> '0' ... '9'
 ESC_SEQ          -> '\a' | '\b' | '\f' | '\n' | '\r' | '\t' | '\v' | '\\' | '\'' | '\"'
@@ -72,14 +73,11 @@ unary            -> ( '-' | '!' )? call
 call             -> primary ( '(' arguments? ')' )*
 primary          -> QUALIFIED_IDENT |
 					IDENT |
-					FLOAT |
-					INT |
-					CHAR |
-					STRING |
-                    'true' |
-					'false' |
-					'nil' |
-					'(' expression ')'
+					BASIC_LIT |
+					'(' expression ')' |
+					primary '.' IDENT |
+					primary '[' expression ']' |
+					primary '[' expression ':' expression ']'
 
 arguments        -> expression ( ',' expression )*
 parameters       -> IDENT TYPE ( ',' IDENT TYPE )*
@@ -618,7 +616,74 @@ func (p *Parser) primary() (ast.Expr, error) {
 	switch p.peek().Kind {
 	case token.FLOAT, token.INT, token.CHAR, token.STRING, token.BOOL, token.NIL:
 		return &ast.BasicLit{Value: p.advance()}, nil
-	case token.IDENT:
+	}
+	if p.peek().Kind == token.IDENT {
+		if p.peekNext().Kind == token.PERIOD {
+			var x ast.Expr = &ast.Ident{Name: p.peek()}
+			for p.peekNext().Kind == token.PERIOD {
+				p.advance() // consume IDENT
+				if t := p.peekNext(); t.Kind != token.IDENT {
+					return nil, fmt.Errorf("expected identifier after period, got %q at %s", t.Lexeme, t.Pos())
+				}
+				p.advance() // consume PERIOD
+				x = &ast.SelectorExpr{
+					X:   x,
+					Sel: &ast.Ident{Name: p.peek()},
+				}
+			}
+			p.advance()
+			return x, nil
+		}
+		if p.peekNext().Kind == token.LBRACK {
+			var x ast.Expr = &ast.Ident{Name: p.peek()}
+			for p.peekNext().Kind == token.LBRACK {
+				p.advance() // consume IDENT or RBRACK
+				var lowidx, high ast.Expr
+				var err error
+				if p.peekNext().Kind == token.COLON {
+					lowidx = &ast.BasicLit{Value: token.NewInt(0)}
+					p.advance()
+				} else {
+					p.advance()
+					lowidx, err = p.expression()
+					if err != nil {
+						return nil, err
+					}
+				}
+				if p.peek().Kind == token.COLON {
+					if p.peekNext().Kind == token.RBRACK {
+						high = &ast.CallExpr{
+							Callee: &ast.Ident{Name: token.NewIdent("len")},
+							Args:   []ast.Expr{x},
+						}
+						p.advance()
+					} else {
+						p.advance()
+						high, err = p.expression()
+						if err != nil {
+							return nil, err
+						}
+					}
+				}
+				if high != nil {
+					x = &ast.SliceExpr{
+						X:    x,
+						Low:  lowidx,
+						High: high,
+					}
+				} else {
+					x = &ast.IndexExpr{
+						X:     x,
+						Index: lowidx,
+					}
+				}
+				if p.peek().Kind != token.RBRACK {
+					return nil, fmt.Errorf("']' expected at %s", p.peek().Pos())
+				}
+			}
+			p.advance()
+			return x, nil
+		}
 		return &ast.Ident{Name: p.advance()}, nil
 	}
 	if p.peek().Kind == token.LPAREN {
@@ -633,7 +698,7 @@ func (p *Parser) primary() (ast.Expr, error) {
 		p.advance()
 		return &ast.ParenExpr{X: expr}, nil
 	}
-	return nil, fmt.Errorf("invalid primary expression at %d:%d", p.peek().Line, p.peek().Col)
+	return nil, fmt.Errorf("invalid primary expression at %s", p.peek().Pos())
 }
 
 func (p *Parser) advance() token.Token {

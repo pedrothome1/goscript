@@ -136,7 +136,22 @@ type Token struct {
 	Col    int
 }
 
-func (t *Token) String() string {
+func NewInt(i int) Token {
+	return Token{
+		Kind:   INT,
+		Lit:    i,
+		Lexeme: strconv.Itoa(i),
+	}
+}
+
+func NewIdent(id string) Token {
+	return Token{
+		Kind:   IDENT,
+		Lexeme: id,
+	}
+}
+
+func (t Token) String() string {
 	switch lv := t.Lit.(type) {
 	case string, rune:
 		return fmt.Sprintf("%s(%q)", t.Kind.String(), lv)
@@ -153,4 +168,8 @@ func (t *Token) String() string {
 		}
 		return fmt.Sprintf("%s(%v)", t.Kind.String(), v)
 	}
+}
+
+func (t Token) Pos() string {
+	return fmt.Sprintf("%d:%d", t.Line, t.Col)
 }
