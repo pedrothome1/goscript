@@ -43,6 +43,9 @@ func (p *Printer) visitValue(val reflect.Value) {
 
 	for typ.Kind() == reflect.Pointer || typ.Kind() == reflect.Interface {
 		val = val.Elem()
+		if !val.IsValid() {
+			return
+		}
 		typ = val.Type()
 	}
 

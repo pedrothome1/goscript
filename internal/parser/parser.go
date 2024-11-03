@@ -621,262 +621,238 @@ func (p *Parser) primary() (ast.Expr, error) {
 	case token.FLOAT, token.INT, token.CHAR, token.STRING, token.BOOL, token.NIL:
 		return &ast.BasicLit{Value: p.advance()}, nil
 	}
-	if p.peek().Kind == token.IDENT {
-		if p.peekNext().Kind == token.PERIOD {
-			var x ast.Expr = &ast.Ident{Name: p.peek()}
-			for p.peekNext().Kind == token.PERIOD {
-				p.advance() // consume IDENT
-				if t := p.peekNext(); t.Kind != token.IDENT {
-					return nil, fmt.Errorf("expected identifier after period, got %q at %s", t.Lexeme, t.Pos())
-				}
-				p.advance() // consume PERIOD
-				x = &ast.SelectorExpr{
-					X:   x,
-					Sel: &ast.Ident{Name: p.peek()},
-				}
-			}
-			p.advance()
-			return x, nil
-		}
-		if p.peekNext().Kind == token.LBRACK {
-			var x ast.Expr = &ast.Ident{Name: p.peek()}
-			for p.peekNext().Kind == token.LBRACK {
-				p.advance() // consume IDENT or RBRACK
-				var lowidx, high ast.Expr
-				var err error
-				if p.peekNext().Kind == token.COLON {
-					lowidx = &ast.BasicLit{Value: token.NewInt(0)}
-					p.advance()
-				} else {
-					p.advance()
-					lowidx, err = p.expression()
-					if err != nil {
-						return nil, err
-					}
-				}
-				if p.peek().Kind == token.COLON {
-					if p.peekNext().Kind == token.RBRACK {
-						high = &ast.CallExpr{
-							Callee: &ast.Ident{Name: token.NewIdent("len")},
-							Args:   []ast.Expr{x},
-						}
-						p.advance()
-					} else {
-						p.advance()
-						high, err = p.expression()
-						if err != nil {
-							return nil, err
-						}
-					}
-				}
-				if high != nil {
-					x = &ast.SliceExpr{
-						X:    x,
-						Low:  lowidx,
-						High: high,
-					}
-				} else {
-					x = &ast.IndexExpr{
-						X:     x,
-						Index: lowidx,
-					}
-				}
-				if p.peek().Kind != token.RBRACK {
-					return nil, fmt.Errorf("']' expected at %s", p.peek().Pos())
-				}
-			}
-			p.advance()
-			return x, nil
-		}
-		return &ast.Ident{Name: p.advance()}, nil
-	}
-	if p.peek().Kind == token.LBRACK && p.peekNext().Kind == token.RBRACK {
-		p.advance()
-		p.advance()
-		typ, err := p.primary()
-		if err != nil {
-			return nil, err
-		}
-		sliceType := &ast.SliceType{Elt: typ}
-		if p.peek().Kind == token.LBRACE {
-			p.advance()
-			var elts []ast.Expr
-			for p.peek().Kind != token.RBRACE && !p.atEnd() {
-				expr, err := p.expression()
-				if err != nil {
-					return nil, err
-				}
-				elts = append(elts, expr)
-				if p.peek().Kind == token.RBRACE {
-					break
-				}
-				if p.peek().Kind != token.COMMA {
-					return nil, fmt.Errorf("',' expected between slice elements")
-				}
-				p.advance()
-			}
-			if p.peek().Kind != token.RBRACE {
-				return nil, fmt.Errorf("'}' expected in slice composite literal")
-			}
-			p.advance()
-			return &ast.CompositeLit{
-				Type: sliceType,
-				Elts: elts,
-			}, nil
-		}
-		return sliceType, nil
-	}
-	if p.peek().Kind == token.MAP {
-		if p.peekNext().Kind != token.LBRACK {
-			return nil, fmt.Errorf("'[' expected at %s for the map key type", p.peekNext().Pos())
-		}
-		p.advance()
-		p.advance()
-		keyType, err := p.primary()
-		if err != nil {
-			return nil, err
-		}
-		if p.peek().Kind != token.RBRACK {
-			return nil, fmt.Errorf("']' expected at %s for the map key type", p.peekNext().Pos())
-		}
-		p.advance()
-		valType, err := p.primary()
-		if err != nil {
-			return nil, err
-		}
-		mapType := &ast.MapType{
-			Key:   keyType,
-			Value: valType,
-		}
-		if p.peek().Kind == token.LBRACE {
-			p.advance()
-			var kvs []ast.Expr
-			for p.peek().Kind != token.RBRACE && !p.atEnd() {
-				key, err := p.expression()
-				if err != nil {
-					return nil, err
-				}
-				if p.peek().Kind != token.COLON {
-					return nil, fmt.Errorf("':' expected between key and value for map literal")
-				}
-				p.advance()
-				val, err := p.expression()
-				if err != nil {
-					return nil, err
-				}
-				kvs = append(kvs, &ast.KeyValueExpr{
-					Key:   key,
-					Value: val,
-				})
-				if p.peek().Kind == token.RBRACE {
-					break
-				}
-				if p.peek().Kind != token.COMMA {
-					return nil, fmt.Errorf("',' expected between map literal key-value pairs")
-				}
-				p.advance()
-			}
-			if p.peek().Kind != token.RBRACE {
-				return nil, fmt.Errorf("'}' expected at the end of map composite literal")
-			}
-			p.advance()
-			return &ast.CompositeLit{
-				Type: mapType,
-				Elts: kvs,
-			}, nil
-		}
-		return mapType, nil
-	}
-	if p.peek().Kind == token.STRUCT {
-		if p.peekNext().Kind != token.LBRACE {
-			return nil, fmt.Errorf("'{' expected at %s for struct literal", p.peekNext().Pos())
-		}
-		p.advance()
-		p.advance()
-		var fields []*ast.Field
-		for p.peek().Kind != token.RBRACE && !p.atEnd() {
-			id, err := p.primary()
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := id.(*ast.Ident); !ok {
-				return nil, fmt.Errorf("field name should be a valid identifier")
-			}
-			typ, err := p.primary()
-			if err != nil {
-				return nil, err
-			}
-			fields = append(fields, &ast.Field{
-				Name: id.(*ast.Ident),
-				Type: typ,
-			})
-			if p.peek().Kind == token.RBRACE {
-				break
-			} else if p.peek().Kind != token.SEMICOLON {
-				return nil, fmt.Errorf("';' expected at %s for struct literal field", p.peek().Pos())
-			}
-			p.advance()
-		}
-		if p.peek().Kind != token.RBRACE {
-			return nil, fmt.Errorf("'}' expected at %s for struct literal", p.peek().Pos())
-		}
-		p.advance()
-		structType := &ast.StructType{Fields: fields}
-		if p.peek().Kind == token.LBRACE {
-			p.advance()
-			var exprs []ast.Expr
-			for p.peek().Kind != token.RBRACE && !p.atEnd() {
-				valname, err := p.expression()
-				if err != nil {
-					return nil, err
-				}
-				if p.peek().Kind == token.COLON {
-					p.advance()
-					val, err := p.expression()
-					if err != nil {
-						return nil, err
-					}
-					exprs = append(exprs, &ast.KeyValueExpr{
-						Key:   valname,
-						Value: val,
-					})
-				} else {
-					exprs = append(exprs, valname)
-				}
-				if p.peek().Kind == token.RBRACE {
-					break
-				}
-				if p.peek().Kind != token.COMMA {
-					return nil, fmt.Errorf("',' expected between struct literal key-value pairs")
-				}
-				p.advance()
-			}
-			if p.peek().Kind != token.RBRACE {
-				return nil, fmt.Errorf("'}' expected at the end of struct composite literal")
-			}
-			p.advance()
-			return &ast.CompositeLit{
-				Type: structType,
-				Elts: exprs,
-			}, nil
-		}
-		return structType, nil
-	}
 	if p.peek().Kind == token.LPAREN {
-		p.advance()
-		expr, err := p.expression()
-		if err != nil {
-			return nil, err
-		}
-		if p.peek().Kind != token.RPAREN {
-			return nil, fmt.Errorf("missing closing ')'")
-		}
-		p.advance()
-		return &ast.ParenExpr{X: expr}, nil
+		return p.parenExpr()
 	}
-	return nil, fmt.Errorf("invalid primary expression at %s", p.peek().Pos())
+	if p.peek().Kind == token.LBRACE {
+		return p.compositeLit(nil)
+	}
+	typ, err := p.typeName()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind == token.LBRACE {
+		return p.compositeLit(typ)
+	}
+	if p.peek().Kind == token.LBRACK {
+		return p.indexSliceExpr(typ)
+	}
+	return typ, nil
 }
 
+func (p *Parser) typeName() (ast.Expr, error) {
+	if p.peek().Kind == token.IDENT {
+		return p.ident()
+	}
+	if p.peek().Kind == token.LBRACK && p.peekNext().Kind == token.RBRACK {
+		return p.sliceType()
+	}
+	if p.peek().Kind == token.MAP {
+		return p.mapType()
+	}
+	if p.peek().Kind == token.STRUCT {
+		return p.structType()
+	}
+	return nil, fmt.Errorf("invalid type at %s", p.peek().Pos())
+}
+
+func (p *Parser) ident() (ast.Expr, error) {
+	if p.peekNext().Kind == token.PERIOD {
+		return p.selectorExpr()
+	}
+	return &ast.Ident{Name: p.advance()}, nil
+}
+
+func (p *Parser) selectorExpr() (ast.Expr, error) {
+	var x ast.Expr = &ast.Ident{Name: p.peek()}
+	for p.peekNext().Kind == token.PERIOD {
+		p.advance() // consume IDENT
+		if t := p.peekNext(); t.Kind != token.IDENT {
+			return nil, fmt.Errorf("expected identifier after period, got %q at %s", t.Lexeme, t.Pos())
+		}
+		p.advance() // consume PERIOD
+		x = &ast.SelectorExpr{
+			X:   x,
+			Sel: &ast.Ident{Name: p.peek()},
+		}
+	}
+	p.advance()
+	return x, nil
+}
+
+func (p *Parser) indexSliceExpr(typ ast.Expr) (ast.Expr, error) {
+	for p.peek().Kind == token.LBRACK {
+		p.advance() // consume LBRACK
+		var lowidx, high ast.Expr
+		var err error
+		if p.peek().Kind == token.COLON {
+			lowidx = &ast.BasicLit{Value: token.NewInt(0)}
+		} else {
+			lowidx, err = p.expression()
+			if err != nil {
+				return nil, err
+			}
+		}
+		if p.peek().Kind == token.COLON {
+			if p.peekNext().Kind == token.RBRACK {
+				high = &ast.CallExpr{
+					Callee: &ast.Ident{Name: token.NewIdent("len")},
+					Args:   []ast.Expr{typ},
+				}
+				p.advance()
+			} else {
+				p.advance()
+				high, err = p.expression()
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		if high != nil {
+			typ = &ast.SliceExpr{
+				X:    typ,
+				Low:  lowidx,
+				High: high,
+			}
+		} else {
+			typ = &ast.IndexExpr{
+				X:     typ,
+				Index: lowidx,
+			}
+		}
+		if p.peek().Kind != token.RBRACK {
+			return nil, fmt.Errorf("']' expected at %s", p.peek().Pos())
+		}
+		p.advance()
+	}
+	return typ, nil
+}
+
+func (p *Parser) sliceType() (ast.Expr, error) {
+	p.advance()
+	p.advance()
+	typ, err := p.typeName()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.SliceType{Elt: typ}, nil
+}
+
+func (p *Parser) mapType() (ast.Expr, error) {
+	if p.peekNext().Kind != token.LBRACK {
+		return nil, fmt.Errorf("'[' expected at %s for the map key type", p.peekNext().Pos())
+	}
+	p.advance()
+	p.advance()
+	keyType, err := p.typeName()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.RBRACK {
+		return nil, fmt.Errorf("']' expected at %s for the map key type", p.peekNext().Pos())
+	}
+	p.advance()
+	valType, err := p.typeName()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.MapType{
+		Key:   keyType,
+		Value: valType,
+	}, nil
+}
+
+func (p *Parser) structType() (ast.Expr, error) {
+	if p.peekNext().Kind != token.LBRACE {
+		return nil, fmt.Errorf("'{' expected at %s for struct literal", p.peekNext().Pos())
+	}
+	p.advance()
+	p.advance()
+	var fields []*ast.Field
+	for p.peek().Kind != token.RBRACE && !p.atEnd() {
+		name, err := p.typeName()
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := name.(*ast.Ident); !ok {
+			return nil, fmt.Errorf("field name should be a valid identifier")
+		}
+		typ, err := p.typeName()
+		if err != nil {
+			return nil, err
+		}
+		fields = append(fields, &ast.Field{
+			Name: name.(*ast.Ident),
+			Type: typ,
+		})
+		if p.peek().Kind == token.RBRACE {
+			break
+		}
+		if p.peek().Kind != token.SEMICOLON {
+			return nil, fmt.Errorf("';' expected at %s for struct literal field", p.peek().Pos())
+		}
+		p.advance()
+	}
+	if p.peek().Kind != token.RBRACE {
+		return nil, fmt.Errorf("'}' expected at %s for struct literal", p.peek().Pos())
+	}
+	p.advance()
+	return &ast.StructType{Fields: fields}, nil
+}
+
+func (p *Parser) compositeLit(typ ast.Expr) (ast.Expr, error) {
+	p.advance()
+	var exprs []ast.Expr
+	for p.peek().Kind != token.RBRACE && !p.atEnd() {
+		key, err := p.expression()
+		if err != nil {
+			return nil, err
+		}
+		if p.peek().Kind == token.COLON {
+			p.advance()
+			val, err := p.expression()
+			if err != nil {
+				return nil, err
+			}
+			exprs = append(exprs, &ast.KeyValueExpr{
+				Key:   key,
+				Value: val,
+			})
+		} else {
+			exprs = append(exprs, key)
+		}
+		if p.peek().Kind == token.RBRACE {
+			break
+		}
+		if p.peek().Kind != token.COMMA {
+			return nil, fmt.Errorf("',' expected between composite literal entries")
+		}
+		p.advance()
+	}
+	if p.peek().Kind != token.RBRACE {
+		return nil, fmt.Errorf("'}' expected at the end of composite literal")
+	}
+	p.advance()
+	return &ast.CompositeLit{
+		Type: typ,
+		Elts: exprs,
+	}, nil
+}
+
+func (p *Parser) parenExpr() (ast.Expr, error) {
+	p.advance()
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().Kind != token.RPAREN {
+		return nil, fmt.Errorf("missing closing ')'")
+	}
+	p.advance()
+	return &ast.ParenExpr{X: expr}, nil
+}
+
+// -- helpers --
 func (p *Parser) advance() token.Token {
 	t := p.toks[p.pos]
 	if t.Kind != token.EOF {
