@@ -26,7 +26,6 @@ func (p *Parser) Init(src string) error {
 
 /*
 --- Lexical Grammar ---
-TYPE             -> TYPE_NAME
 TYPE_NAME        -> IDENT | QUALIFIED_IDENT
 QUALIFIED_IDENT  -> PACKAGE_NAME '.' IDENT
 PACKAGE_NAME     -> IDENT
@@ -46,8 +45,8 @@ ESC_SEQ          -> '\a' | '\b' | '\f' | '\n' | '\r' | '\t' | '\v' | '\\' | '\''
 program          -> statement* EOF
 
 declaration      -> varDecl | funcDecl | statement
-varDecl          -> 'var' IDENT ( TYPE | TYPE? '=' expression ) ';'
-funcDecl         -> 'func' IDENT '(' parameters? ')' TYPE? blockStmt
+varDecl          -> 'var' IDENT ( type | type? '=' expression ) ';'
+funcDecl         -> 'func' IDENT '(' parameters? ')' type? blockStmt
 
 statement        -> simpleStmt | printStmt | blockStmt | ifStmt | forStmt | breakStmt | continueStmt | returnStmt
 simpleStmt       -> exprStmt | incDecStmt | assignStmt | shortVarDecl
@@ -78,9 +77,14 @@ primary          -> QUALIFIED_IDENT |
 					primary '.' IDENT |
 					primary '[' expression ']' |
 					primary '[' expression ':' expression ']'
+					'[' ']' type
 
+type             -> TYPE_NAME | slice_type | map_type | struct_type
+slice_type       -> '[' ']' type
+map_type         -> map '[' type ']' type
+struct_type      -> struct '{' IDENT type ( ';' IDENT type )* '}'
 arguments        -> expression ( ',' expression )*
-parameters       -> IDENT TYPE ( ',' IDENT TYPE )*
+parameters       -> IDENT type ( ',' IDENT type )*
 */
 
 func (p *Parser) Parse() ([]ast.Stmt, error) {
@@ -685,6 +689,74 @@ func (p *Parser) primary() (ast.Expr, error) {
 			return x, nil
 		}
 		return &ast.Ident{Name: p.advance()}, nil
+	}
+	if p.peek().Kind == token.LBRACK && p.peekNext().Kind == token.RBRACK {
+		p.advance()
+		p.advance()
+		typ, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.SliceType{Elt: typ}, nil
+	}
+	if p.peek().Kind == token.MAP {
+		if p.peekNext().Kind != token.LBRACK {
+			return nil, fmt.Errorf("'[' expected at %s for the map key type", p.peekNext().Pos())
+		}
+		p.advance()
+		p.advance()
+		key, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		if p.peek().Kind != token.RBRACK {
+			return nil, fmt.Errorf("']' expected at %s for the map key type", p.peekNext().Pos())
+		}
+		p.advance()
+		val, err := p.primary()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.MapType{
+			Key:   key,
+			Value: val,
+		}, nil
+	}
+	if p.peek().Kind == token.STRUCT {
+		if p.peekNext().Kind != token.LBRACE {
+			return nil, fmt.Errorf("'{' expected at %s for struct literal", p.peekNext().Pos())
+		}
+		p.advance()
+		p.advance()
+		var fields []*ast.Field
+		for p.peek().Kind != token.RBRACE && !p.atEnd() {
+			id, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := id.(*ast.Ident); !ok {
+				return nil, fmt.Errorf("field name should be a valid identifier")
+			}
+			typ, err := p.primary()
+			if err != nil {
+				return nil, err
+			}
+			fields = append(fields, &ast.Field{
+				Name: id.(*ast.Ident),
+				Type: typ,
+			})
+			if p.peek().Kind == token.RBRACE {
+				break
+			} else if p.peek().Kind != token.SEMICOLON {
+				return nil, fmt.Errorf("';' expected at %s for struct literal field", p.peek().Pos())
+			}
+			p.advance()
+		}
+		if p.peek().Kind != token.RBRACE {
+			return nil, fmt.Errorf("'}' expected at %s for struct literal", p.peek().Pos())
+		}
+		p.advance()
+		return &ast.StructType{Fields: fields}, nil
 	}
 	if p.peek().Kind == token.LPAREN {
 		p.advance()
