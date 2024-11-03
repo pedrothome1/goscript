@@ -236,7 +236,6 @@ type TypeDecl struct {
 }
 
 type Field struct {
-	Name  *Ident
 	Names []*Ident
 	Type  Expr
 }

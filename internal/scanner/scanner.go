@@ -33,15 +33,15 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 		switch ch {
 		case '+':
 			if s.peek() == '+' {
-				s.addToken(token.INC, nil)
 				s.advance()
+				s.addToken(token.INC, nil)
 			} else {
 				s.addToken(token.ADD, nil)
 			}
 		case '-':
 			if s.peek() == '-' {
-				s.addToken(token.DEC, nil)
 				s.advance()
+				s.addToken(token.DEC, nil)
 			} else {
 				s.addToken(token.SUB, nil)
 			}
@@ -67,8 +67,8 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			s.addToken(token.SEMICOLON, nil)
 		case ':':
 			if s.peek() == '=' {
-				s.addToken(token.DEFINE, nil)
 				s.advance()
+				s.addToken(token.DEFINE, nil)
 			} else {
 				s.addToken(token.COLON, nil)
 			}
@@ -76,9 +76,9 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			s.addToken(token.COMMA, nil)
 		case '.':
 			if s.peek() == '.' && s.peekNext() == '.' {
+				s.advance()
+				s.advance()
 				s.addToken(token.ELLIPSIS, nil)
-				s.advance()
-				s.advance()
 			} else {
 				s.addToken(token.PERIOD, nil)
 			}
@@ -86,55 +86,55 @@ func (s *Scanner) Scan() ([]token.Token, error) {
 			s.addToken(token.XOR, nil)
 		case '<':
 			if s.peek() == '<' {
+				s.advance()
 				s.addToken(token.SHL, nil)
-				s.advance()
 			} else if s.peek() == '=' {
+				s.advance()
 				s.addToken(token.LEQ, nil)
-				s.advance()
 			} else if s.peek() == '-' {
-				s.addToken(token.ARROW, nil)
 				s.advance()
+				s.addToken(token.ARROW, nil)
 			} else {
 				s.addToken(token.LSS, nil)
 			}
 		case '>':
 			if s.peek() == '>' {
+				s.advance()
 				s.addToken(token.SHR, nil)
-				s.advance()
 			} else if s.peek() == '=' {
-				s.addToken(token.GEQ, nil)
 				s.advance()
+				s.addToken(token.GEQ, nil)
 			} else {
 				s.addToken(token.GTR, nil)
 			}
 		case '!':
 			if s.peek() == '=' {
-				s.addToken(token.NEQ, nil)
 				s.advance()
+				s.addToken(token.NEQ, nil)
 			} else {
 				s.addToken(token.NOT, nil)
 			}
 		case '=':
 			if s.peek() == '=' {
-				s.addToken(token.EQL, nil)
 				s.advance()
+				s.addToken(token.EQL, nil)
 			} else {
 				s.addToken(token.ASSIGN, nil)
 			}
 		case '|':
 			if s.peek() == '|' {
-				s.addToken(token.LOR, nil)
 				s.advance()
+				s.addToken(token.LOR, nil)
 			} else {
 				s.addToken(token.OR, nil)
 			}
 		case '&':
 			if s.peek() == '&' {
+				s.advance()
 				s.addToken(token.LAND, nil)
-				s.advance()
 			} else if s.peek() == '^' {
-				s.addToken(token.AND_NOT, nil)
 				s.advance()
+				s.addToken(token.AND_NOT, nil)
 			} else {
 				s.addToken(token.AND, nil)
 			}

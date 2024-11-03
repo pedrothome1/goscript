@@ -144,7 +144,7 @@ func (p *Parser) funcDecl() (ast.Stmt, error) {
 	if !p.match(token.LPAREN) {
 		return nil, parseErrorf("'(' expected after function name")
 	}
-	params, err := p.fieldsSignature(true, token.COMMA, token.RPAREN)
+	params, err := p.fieldsSignature(true, token.COMMA, token.RPAREN, p.ellipsisTypeName)
 	if err != nil {
 		return nil, err
 	}
@@ -591,6 +591,10 @@ func (p *Parser) call() (ast.Expr, error) {
 		}
 	}
 
+	if p.match(token.ELLIPSIS) {
+		return &ast.Ellipsis{Elt: callee}, nil
+	}
+
 	return callee, nil
 }
 
@@ -617,6 +621,21 @@ func (p *Parser) primary() (ast.Expr, error) {
 	}
 	if p.peek().Kind == token.LBRACK {
 		return p.indexSliceExpr(typ)
+	}
+	return typ, nil
+}
+
+func (p *Parser) ellipsisTypeName() (ast.Expr, error) {
+	var ellipsis bool
+	if p.match(token.ELLIPSIS) {
+		ellipsis = true
+	}
+	typ, err := p.typeName()
+	if err != nil {
+		return nil, err
+	}
+	if ellipsis {
+		return &ast.Ellipsis{Elt: typ}, nil
 	}
 	return typ, nil
 }
@@ -752,7 +771,7 @@ func (p *Parser) structType() (ast.Expr, error) {
 	}
 	p.advance()
 	p.advance()
-	fields, err := p.fieldsSignature(false, token.SEMICOLON, token.RBRACE)
+	fields, err := p.fieldsSignature(false, token.SEMICOLON, token.RBRACE, p.typeName)
 	if err != nil {
 		return nil, err
 	}
@@ -767,7 +786,7 @@ func (p *Parser) funcType() (ast.Expr, error) {
 	if !p.match(token.LPAREN) {
 		return nil, parseErrorf("expected '(' after 'func'")
 	}
-	params, err := p.fieldsSignature(false, token.COMMA, token.RPAREN)
+	params, err := p.fieldsSignature(false, token.COMMA, token.RPAREN, p.ellipsisTypeName)
 	if err != nil {
 		return nil, err
 	}
@@ -786,7 +805,7 @@ func (p *Parser) funcType() (ast.Expr, error) {
 
 func (p *Parser) funcResult() ([]*ast.Field, error) {
 	if p.match(token.LPAREN) {
-		results, err := p.fieldsSignature(false, token.COMMA, token.RPAREN)
+		results, err := p.fieldsSignature(false, token.COMMA, token.RPAREN, p.typeName)
 		if err != nil {
 			return nil, err
 		}
@@ -805,7 +824,7 @@ func (p *Parser) funcResult() ([]*ast.Field, error) {
 	return []*ast.Field{{Type: result}}, nil
 }
 
-func (p *Parser) fieldsSignature(requireNames bool, sep token.Kind, end token.Kind) ([]*ast.Field, error) {
+func (p *Parser) fieldsSignature(requireNames bool, sep token.Kind, end token.Kind, parseType func() (ast.Expr, error)) ([]*ast.Field, error) {
 	if p.peek().Kind == end {
 		return nil, nil
 	}
@@ -815,7 +834,7 @@ func (p *Parser) fieldsSignature(requireNames bool, sep token.Kind, end token.Ki
 	for {
 		var exprs []ast.Expr
 		for {
-			left, err := p.typeName()
+			left, err := parseType()
 			if err != nil {
 				return nil, err
 			}
@@ -833,7 +852,7 @@ func (p *Parser) fieldsSignature(requireNames bool, sep token.Kind, end token.Ki
 			}
 			break
 		}
-		rightType, err := p.typeName()
+		rightType, err := parseType()
 		if err != nil {
 			return nil, err
 		}
