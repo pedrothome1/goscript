@@ -144,7 +144,7 @@ func (p *Parser) funcDecl() (ast.Stmt, error) {
 	if !p.match(token.LPAREN) {
 		return nil, parseErrorf("'(' expected after function name")
 	}
-	params, err := p.fieldsSignature(true)
+	params, err := p.fieldsSignature(true, token.COMMA, token.RPAREN)
 	if err != nil {
 		return nil, err
 	}
@@ -748,39 +748,17 @@ func (p *Parser) mapType() (ast.Expr, error) {
 
 func (p *Parser) structType() (ast.Expr, error) {
 	if p.peekNext().Kind != token.LBRACE {
-		return nil, parseErrorf("'{' expected at %s for struct literal", p.peekNext().Pos())
+		return nil, parseErrorf("'{' expected at %s for struct type", p.peekNext().Pos())
 	}
 	p.advance()
 	p.advance()
-	var fields []*ast.Field
-	for p.peek().Kind != token.RBRACE && !p.atEnd() {
-		name, err := p.typeName()
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := name.(*ast.Ident); !ok {
-			return nil, parseErrorf("field name should be a valid identifier")
-		}
-		typ, err := p.typeName()
-		if err != nil {
-			return nil, err
-		}
-		fields = append(fields, &ast.Field{
-			Name: name.(*ast.Ident),
-			Type: typ,
-		})
-		if p.peek().Kind == token.RBRACE {
-			break
-		}
-		if p.peek().Kind != token.SEMICOLON {
-			return nil, parseErrorf("';' expected at %s for struct literal field", p.peek().Pos())
-		}
-		p.advance()
+	fields, err := p.fieldsSignature(false, token.SEMICOLON, token.RBRACE)
+	if err != nil {
+		return nil, err
 	}
-	if p.peek().Kind != token.RBRACE {
-		return nil, parseErrorf("'}' expected at %s for struct literal", p.peek().Pos())
+	if !p.match(token.RBRACE) {
+		return nil, parseErrorf("'}' expected at %s %s for struct type", p.peek().String(), p.peek().Pos())
 	}
-	p.advance()
 	return &ast.StructType{Fields: fields}, nil
 }
 
@@ -789,7 +767,7 @@ func (p *Parser) funcType() (ast.Expr, error) {
 	if !p.match(token.LPAREN) {
 		return nil, parseErrorf("expected '(' after 'func'")
 	}
-	params, err := p.fieldsSignature(false)
+	params, err := p.fieldsSignature(false, token.COMMA, token.RPAREN)
 	if err != nil {
 		return nil, err
 	}
@@ -808,7 +786,7 @@ func (p *Parser) funcType() (ast.Expr, error) {
 
 func (p *Parser) funcResult() ([]*ast.Field, error) {
 	if p.match(token.LPAREN) {
-		results, err := p.fieldsSignature(false)
+		results, err := p.fieldsSignature(false, token.COMMA, token.RPAREN)
 		if err != nil {
 			return nil, err
 		}
@@ -827,8 +805,8 @@ func (p *Parser) funcResult() ([]*ast.Field, error) {
 	return []*ast.Field{{Type: result}}, nil
 }
 
-func (p *Parser) fieldsSignature(requireNames bool) ([]*ast.Field, error) {
-	if p.peek().Kind == token.RPAREN {
+func (p *Parser) fieldsSignature(requireNames bool, sep token.Kind, end token.Kind) ([]*ast.Field, error) {
+	if p.peek().Kind == end {
 		return nil, nil
 	}
 
@@ -846,14 +824,12 @@ func (p *Parser) fieldsSignature(requireNames bool) ([]*ast.Field, error) {
 				break
 			}
 		}
-		if p.peek().Kind == token.RPAREN {
+		if p.peek().Kind == end {
 			if requireNames {
 				return nil, parseErrorf("parameter names are required")
 			}
 			for _, typ := range exprs {
-				fields = append(fields, &ast.Field{
-					Type: typ,
-				})
+				fields = append(fields, &ast.Field{Type: typ})
 			}
 			break
 		}
@@ -870,7 +846,7 @@ func (p *Parser) fieldsSignature(requireNames bool) ([]*ast.Field, error) {
 			names = append(names, id)
 		}
 		fields = append(fields, &ast.Field{Names: names, Type: rightType})
-		if !p.match(token.COMMA) {
+		if !p.match(sep) {
 			break
 		}
 	}
