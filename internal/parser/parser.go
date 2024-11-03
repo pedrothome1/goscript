@@ -246,7 +246,7 @@ func (p *Parser) shortVarDecl() (ast.Stmt, error) {
 		return nil, err
 	}
 	if p.peek().Kind != token.SEMICOLON {
-		return nil, parseErrorf("';' expected after short variable declaration")
+		return nil, parseErrorf("';' expected after short variable declaration at %s %s", p.peek().String(), p.peek().Pos())
 	}
 	p.advance()
 	return &ast.VarDecl{
@@ -257,7 +257,7 @@ func (p *Parser) shortVarDecl() (ast.Stmt, error) {
 }
 
 func (p *Parser) blockStmt() (ast.Stmt, error) {
-	list, err := p.block()
+	list, err := p.block(true)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +402,7 @@ func (p *Parser) expressionStmt() (ast.Stmt, error) {
 	return &ast.ExprStmt{Expr: expr}, nil
 }
 
-func (p *Parser) block() ([]ast.Stmt, error) {
+func (p *Parser) block(eatSemi bool) ([]ast.Stmt, error) {
 	p.advance() // consume '{'
 	var list []ast.Stmt
 	for p.peek().Kind != token.RBRACE && !p.atEnd() {
@@ -416,7 +416,9 @@ func (p *Parser) block() ([]ast.Stmt, error) {
 		return nil, parseErrorf("'}' expected after block")
 	}
 	if p.advance(); p.peek().Kind == token.SEMICOLON {
-		p.advance()
+		if eatSemi {
+			p.advance()
+		}
 	}
 	return list, nil
 }
@@ -877,7 +879,7 @@ func (p *Parser) fieldsSignature(requireNames bool) ([]*ast.Field, error) {
 }
 
 func (p *Parser) funcLit(typ *ast.FuncType) (ast.Expr, error) {
-	body, err := p.block()
+	body, err := p.block(false)
 	if err != nil {
 		return nil, err
 	}
