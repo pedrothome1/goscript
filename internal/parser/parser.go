@@ -606,18 +606,17 @@ func (p *Parser) primary() (ast.Expr, error) {
 	if p.peek().Kind == token.LPAREN {
 		return p.parenExpr()
 	}
-	if p.peek().Kind == token.LBRACE {
-		return p.compositeLit(nil)
-	}
 	typ, err := p.typeName()
 	if err != nil {
 		return nil, err
 	}
 	if p.peek().Kind == token.LBRACE {
-		if ft, ok := typ.(*ast.FuncType); ok {
-			return p.funcLit(ft)
+		switch t := typ.(type) {
+		case *ast.FuncType:
+			return p.funcLit(t)
+		case *ast.SliceType, *ast.StructType:
+			return p.compositeLit(t)
 		}
-		return p.compositeLit(typ)
 	}
 	if p.peek().Kind == token.LBRACK {
 		return p.indexSliceExpr(typ)

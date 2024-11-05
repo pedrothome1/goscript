@@ -11,7 +11,7 @@ const debug = true
 
 func parseErrorf(format string, args ...any) error {
 	if debug {
-		const bufSize = 30
+		const bufSize = 50
 		excludeFuncs := []string{"goexit", "main", "Parse"}
 		pcs := make([]uintptr, bufSize)
 		written := runtime.Callers(2, pcs)
