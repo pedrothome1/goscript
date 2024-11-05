@@ -1,0 +1,51 @@
+ast.FuncDecl(
+    ast.Ident(
+        IDENT(getName)
+    ),
+    ast.Field(
+        ast.Ident(
+            IDENT(string)
+        )
+    )
+    ast.ReturnStmt(
+        ast.BasicLit(
+            STRING("Pedro")
+        )
+    )
+)
+ast.FuncDecl(
+    ast.Ident(
+        IDENT(printHello)
+    ),
+    ast.Field(
+        ast.Ident(
+            IDENT(name)
+        )
+        ast.Ident(
+            IDENT(string)
+        )
+    )
+    ast.PrintStmt(
+        ast.BinaryExpr(
+            ast.BasicLit(
+                STRING("Hello, ")
+            ),
+            ADD(+),
+            ast.Ident(
+                IDENT(name)
+            )
+        )
+    )
+)
+ast.ExprStmt(
+    ast.CallExpr(
+        ast.Ident(
+            IDENT(printHello)
+        ),
+        ast.CallExpr(
+            ast.Ident(
+                IDENT(getName)
+            ),
+        )
+    )
+)

@@ -1,0 +1,54 @@
+ast.VarDecl(
+    ast.Ident(
+        IDENT(name)
+    ),
+    ast.BasicLit(
+        STRING("pedro")
+    )
+)
+ast.IfStmt(
+    ast.BinaryExpr(
+        ast.Ident(
+            IDENT(name)
+        ),
+        EQL(==),
+        ast.BasicLit(
+            STRING("pedro")
+        )
+    ),
+    ast.BlockStmt(
+        ast.VarDecl(
+            ast.Ident(
+                IDENT(name)
+            ),
+            ast.BasicLit(
+                STRING("Pedro")
+            )
+        ),
+        ast.VarDecl(
+            ast.Ident(
+                IDENT(lastName)
+            ),
+            ast.BasicLit(
+                STRING("Almeida")
+            )
+        ),
+        ast.PrintStmt(
+            ast.BinaryExpr(
+                ast.BinaryExpr(
+                    ast.Ident(
+                        IDENT(name)
+                    ),
+                    ADD(+),
+                    ast.BasicLit(
+                        STRING(" ")
+                    )
+                ),
+                ADD(+),
+                ast.Ident(
+                    IDENT(lastName)
+                )
+            )
+        )
+    ),
+)

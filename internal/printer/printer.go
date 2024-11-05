@@ -64,6 +64,14 @@ func (p *Printer) StmtString(stmt ast.Stmt) string {
 	return p.sb.String()
 }
 
+func (p *Printer) StmtsString(stmts []ast.Stmt) string {
+	defer p.sb.Reset()
+	for _, s := range stmts {
+		s.Accept(p)
+	}
+	return p.sb.String()
+}
+
 // -- ExprVisitor --
 func (p *Printer) VisitEllipsis(expr *ast.Ellipsis) (any, error) {
 	p.visitValue(reflect.ValueOf(expr))

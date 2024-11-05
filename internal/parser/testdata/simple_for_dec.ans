@@ -1,0 +1,38 @@
+ast.VarDecl(
+    ast.Ident(
+        IDENT(i)
+    ),
+    ast.BasicLit(
+        INT(6)
+    )
+)
+ast.ForStmt(
+    ast.BinaryExpr(
+        ast.Ident(
+            IDENT(i)
+        ),
+        GEQ(>=),
+        ast.BasicLit(
+            INT(0)
+        )
+    ),
+    ast.BlockStmt(
+        ast.PrintStmt(
+            ast.BinaryExpr(
+                ast.Ident(
+                    IDENT(i)
+                ),
+                ADD(+),
+                ast.BasicLit(
+                    INT(1)
+                )
+            )
+        ),
+        ast.IncDecStmt(
+            ast.Ident(
+                IDENT(i)
+            ),
+            DEC(--)
+        )
+    )
+)

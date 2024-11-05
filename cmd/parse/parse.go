@@ -9,10 +9,50 @@ import (
 	"github.com/pedrothome1/goscript/internal/scanner"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
 	log.SetFlags(0)
+
+	if len(os.Args) > 2 {
+		log.Fatal("Usage: parse <file>")
+	}
+
+	if len(os.Args) == 1 {
+		repl()
+		return
+	}
+
+	writeAnswer(os.Args[1])
+}
+
+func writeAnswer(path string) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	psr := &parser.Parser{}
+	psr.Init(string(b))
+
+	prog, err := psr.Parse()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pr := &printer.Printer{}
+
+	ansPath, _ := strings.CutSuffix(path, ".gs")
+	ansPath += ".ans"
+
+	err = os.WriteFile(ansPath, []byte(pr.StmtsString(prog)), 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func repl() {
 	sc := bufio.NewScanner(os.Stdin)
 	sc.Split(bufio.ScanLines)
 
@@ -45,9 +85,6 @@ func main() {
 			continue
 		}
 
-		for _, stmt := range stmts {
-			fmt.Print(pr.StmtString(stmt))
-			fmt.Println()
-		}
+		fmt.Print(pr.StmtsString(stmts))
 	}
 }

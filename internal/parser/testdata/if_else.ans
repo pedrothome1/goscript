@@ -1,0 +1,39 @@
+ast.VarDecl(
+    ast.Ident(
+        IDENT(n)
+    ),
+    ast.BasicLit(
+        INT(23)
+    )
+)
+ast.IfStmt(
+    ast.BinaryExpr(
+        ast.BinaryExpr(
+            ast.Ident(
+                IDENT(n)
+            ),
+            REM(%),
+            ast.BasicLit(
+                INT(2)
+            )
+        ),
+        EQL(==),
+        ast.BasicLit(
+            INT(0)
+        )
+    ),
+    ast.BlockStmt(
+        ast.PrintStmt(
+            ast.BasicLit(
+                STRING("n is even")
+            )
+        )
+    ),
+    ast.BlockStmt(
+        ast.PrintStmt(
+            ast.BasicLit(
+                STRING("n is odd")
+            )
+        )
+    )
+)
